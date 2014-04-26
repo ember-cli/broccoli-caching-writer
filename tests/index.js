@@ -13,7 +13,7 @@ var cachingWriter = require('..');
 var builder;
 
 describe('broccoli-caching-writer', function(){
-  var sourcePath = 'tests/fixtures/sample-project/lib';
+  var sourcePath = 'tests/fixtures/sample-project';
 
   afterEach(function() {
     if (builder) {
