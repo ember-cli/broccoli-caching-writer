@@ -3,6 +3,7 @@
 var fs = require('fs');
 var path = require('path');
 var expect = require('expect.js');
+var RSVP = require('rsvp');
 var mkdirp = require('mkdirp');
 var rimraf = require('rimraf');
 var root = process.cwd();
@@ -14,10 +15,15 @@ var builder;
 
 describe('broccoli-caching-writer', function(){
   var sourcePath = 'tests/fixtures/sample-project';
+  var dummyChangedFile = sourcePath + 'dummy-changed-file';
 
   afterEach(function() {
     if (builder) {
       builder.cleanup();
+    }
+
+    if (fs.existsSync(dummyChangedFile)) {
+      fs.unlinkSync(dummyChangedFile);
     }
   });
 
@@ -48,10 +54,46 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
       return builder.build()
     });
+
+    it('only calls updateCache once if input is not changing', function(){
+      var updateCacheCount = 0;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() {
+          updateCacheCount++;
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+      return RSVP.all([builder.build(), builder.build(), builder.build()])
+        .then(function() {
+          expect(updateCacheCount).to.be.ok(1);
+        })
+    });
+
+    it('calls updateCache again if input is changed', function(){
+      var updateCacheCount = 0;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() {
+          updateCacheCount++;
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+
+      return builder.build()
+        .then(function() {
+          expect(updateCacheCount).to.be.ok(1);
+          fs.writeFileSync(dummyChangedFile, 'bergh');
+
+          return RSVP.all([builder.build(), builder.build(), builder.build()])
+        })
+        .then(function() {
+          expect(updateCacheCount).to.be.ok(2);
+        })
+    });
   });
 
   describe('updateCache', function() {
-
     it('can write files to destDir, and they will be in the final output', function(){
       var tree = cachingWriter(sourcePath, {
         updateCache: function(srcDir, destDir) {
