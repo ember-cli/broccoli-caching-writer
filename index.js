@@ -37,6 +37,7 @@ CachingWriter.prototype.write = function (readTree, destDir) {
 
     if (inputTreeHash !== self._cacheHash) {
       self.updateCache(srcDir, self.getCleanCacheDir());
+      self._cacheHash = inputTreeHash;
     }
 
     linkRecursivelySync(self.getCacheDir(), destDir);

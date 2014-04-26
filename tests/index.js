@@ -15,7 +15,7 @@ var builder;
 
 describe('broccoli-caching-writer', function(){
   var sourcePath = 'tests/fixtures/sample-project';
-  var dummyChangedFile = sourcePath + 'dummy-changed-file';
+  var dummyChangedFile = sourcePath + '/dummy-changed-file';
 
   afterEach(function() {
     if (builder) {
@@ -37,7 +37,7 @@ describe('broccoli-caching-writer', function(){
       });
 
       builder = new broccoli.Builder(tree);
-      return builder.build().then(function() {
+      return builder.build().finally(function() {
         expect(updateCacheCalled).to.be.ok();
       });
     });
@@ -66,8 +66,8 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
       return RSVP.all([builder.build(), builder.build(), builder.build()])
         .then(function() {
-          expect(updateCacheCount).to.be.ok(1);
-        })
+          expect(updateCacheCount).to.eql(1);
+        });
     });
 
     it('calls updateCache again if input is changed', function(){
@@ -81,15 +81,21 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
 
       return builder.build()
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
+        })
         .then(function() {
-          expect(updateCacheCount).to.be.ok(1);
           fs.writeFileSync(dummyChangedFile, 'bergh');
 
-          return RSVP.all([builder.build(), builder.build(), builder.build()])
+          return RSVP.all([
+              builder.build(),
+              builder.build(),
+              builder.build()
+            ])
         })
-        .then(function() {
-          expect(updateCacheCount).to.be.ok(2);
-        })
+        .finally(function() {
+          expect(updateCacheCount).to.eql(2);
+        });
     });
   });
 
@@ -102,7 +108,7 @@ describe('broccoli-caching-writer', function(){
       });
 
       builder = new broccoli.Builder(tree);
-      return builder.build().then(function(dir) {
+      return builder.build().finally(function(dir) {
         expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.eql('zomg blammo');
       });
     });
