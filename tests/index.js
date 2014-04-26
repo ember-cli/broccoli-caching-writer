@@ -108,7 +108,7 @@ describe('broccoli-caching-writer', function(){
       });
 
       builder = new broccoli.Builder(tree);
-      return builder.build().finally(function(dir) {
+      return builder.build().then(function(dir) {
         expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.eql('zomg blammo');
       });
     });
