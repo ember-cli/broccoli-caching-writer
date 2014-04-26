@@ -106,5 +106,15 @@ describe('broccoli-caching-writer', function(){
         expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.eql('zomg blammo');
       });
     });
+
+    it('throws an error if not overriden', function(){
+      var tree = cachingWriter(sourcePath);
+
+      builder = new broccoli.Builder(tree);
+      return builder.build()
+        .catch(function(reason) {
+          expect(reason.message).to.eql('You must implement updateCache.');
+        });
+    });
   });
 });

@@ -49,7 +49,7 @@ CachingWriter.prototype.cleanup = function () {
 }
 
 CachingWriter.prototype.updateCache = function (srcDir, destDir) {
-  //helpers.copyRecursivelySync(srcDir, destDir);
+  throw new Error('You must implement updateCache.');
 }
 
 module.exports = CachingWriter;
