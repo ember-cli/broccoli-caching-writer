@@ -21,17 +21,32 @@ describe('broccoli-caching-writer', function(){
     }
   });
 
-  it('calls updateCache when there is no cache', function(){
-    var updateCacheCalled = false;
-    var tree = cachingWriter(sourcePath, {
-      updateCache: function() {
-        updateCacheCalled = true;
-      }
+  describe('updateCache', function() {
+    it('calls updateCache when there is no cache', function(){
+      var updateCacheCalled = false;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() {
+          updateCacheCalled = true;
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function() {
+        expect(updateCacheCalled).to.be.ok();
+      });
     });
 
-    builder = new broccoli.Builder(tree);
-    return builder.build().then(function() {
-      expect(updateCacheCalled).to.be.ok();
+    it('is provided a source and destination directory', function(){
+      var updateCacheCalled = false;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function(srcDir, destDir) {
+          expect(fs.statSync(srcDir).isDirectory()).to.be.ok();
+          expect(fs.statSync(destDir).isDirectory()).to.be.ok();
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+      return builder.build()
     });
   });
 
