@@ -48,6 +48,19 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
       return builder.build()
     });
+
+    it('can write files to destDir, and they will be in the final output', function(){
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function(srcDir, destDir) {
+          fs.writeFileSync(destDir + '/something-cool.js', 'zomg blammo', {encoding: 'utf8'});
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function(dir) {
+        expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.eql('zomg blammo');
+      });
+    });
   });
 
   //it('does not clobber the directory', function(){

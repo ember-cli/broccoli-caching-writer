@@ -39,7 +39,7 @@ CachingWriter.prototype.write = function (readTree, destDir) {
       self.updateCache(srcDir, self.getCleanCacheDir());
     }
 
-    linkRecursivelySync(srcDir, self.getCacheDir());
+    linkRecursivelySync(self.getCacheDir(), destDir);
   })
 };
 
