@@ -21,7 +21,7 @@ describe('broccoli-caching-writer', function(){
     }
   });
 
-  describe('updateCache', function() {
+  describe('write', function() {
     it('calls updateCache when there is no cache', function(){
       var updateCacheCalled = false;
       var tree = cachingWriter(sourcePath, {
@@ -48,6 +48,9 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
       return builder.build()
     });
+  });
+
+  describe('updateCache', function() {
 
     it('can write files to destDir, and they will be in the final output', function(){
       var tree = cachingWriter(sourcePath, {
