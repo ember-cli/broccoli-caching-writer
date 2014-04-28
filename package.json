@@ -19,9 +19,9 @@
   "dependencies": {
     "broccoli-writer": "~0.1.1",
     "broccoli-kitchen-sink-helpers": "~0.2.0",
-    "rimraf": "~2.2.6",
     "mkdirp": "~0.4.0",
-    "quick-temp": "~0.1.2"
+    "quick-temp": "~0.1.2",
+    "walk-sync": "~0.1.2"
   },
   "devDependencies": {
     "mocha": "~1.18.2",

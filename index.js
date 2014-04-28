@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var mkdirp = require('mkdirp')
+var walkSync = require('walk-sync');
 var quickTemp = require('quick-temp')
 var Writer = require('broccoli-writer');
 var helpers = require('broccoli-kitchen-sink-helpers')
@@ -43,7 +44,7 @@ CachingWriter.prototype.write = function (readTree, destDir) {
       self._cacheTreeKeys = inputTreeKeys;
     }
 
-    helpers.copyRecursivelySync(self.getCacheDir(), destDir);
+    linkFromCache(self.getCacheDir(), destDir);
   })
 };
 
@@ -57,6 +58,27 @@ CachingWriter.prototype.updateCache = function (srcDir, destDir) {
 }
 
 module.exports = CachingWriter;
+
+function linkFromCache(srcDir, destDir) {
+  var files = walkSync(srcDir);
+  var length = files.length;
+  var file;
+
+  for (var i = 0; i < length; i++) {
+    file = files[i];
+
+    var srcFile = path.join(srcDir, file);
+    var stats   = fs.statSync(srcFile);
+
+    if (stats.isDirectory()) { continue; }
+
+    if (!stats.isFile()) { throw new Error('Can not link non-file.'); }
+
+    destFile = path.join(destDir, file);
+    mkdirp.sync(path.dirname(destFile));
+    fs.linkSync(srcFile, destFile);
+  }
+}
 
 function keysForTree (fullPath, options) {
   options = options || {}
