@@ -1,6 +1,6 @@
 {
   "name": "broccoli-caching-writer",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Broccoli plugin that allows simple caching (while still allowing N:N) based on the input tree hash.",
   "main": "index.js",
   "author": "Robert Jackson",
