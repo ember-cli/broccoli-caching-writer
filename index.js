@@ -33,7 +33,7 @@ CachingWriter.prototype.write = function (readTree, destDir) {
   var self = this
 
   return readTree(this.inputTree).then(function (srcDir) {
-    var inputTreeKeys = relativeKeysForTree(srcDir);
+    var inputTreeKeys = keysForTree(srcDir);
     var inputTreeHash = helpers.hashStrings(inputTreeKeys);
 
     if (inputTreeHash !== self._cacheHash) {
@@ -58,10 +58,15 @@ CachingWriter.prototype.updateCache = function (srcDir, destDir) {
 
 module.exports = CachingWriter;
 
-function relativeKeysForTree (root, relativePath, _stack, _followSymlink) {
-  var stats, statKeys
-  if (!relativePath) { relativePath = ''; }
-  var fullPath = path.join(root, relativePath);
+function keysForTree (fullPath, options) {
+  options = options || {}
+
+  var _stack         = options._stack
+  var _followSymlink = options._followSymlink
+  var relativePath   = options.relativePath || '.'
+  var stats
+  var statKeys
+
   try {
     if (_followSymlink) {
       stats = fs.statSync(fullPath)
@@ -74,6 +79,11 @@ function relativeKeysForTree (root, relativePath, _stack, _followSymlink) {
     // proceed hashing.
   }
   var childKeys = []
+  if (stats) {
+    statKeys = ['stats', stats.mode, stats.size]
+  } else {
+    statKeys = ['stat failed']
+  }
   if (stats && stats.isDirectory()) {
     var fileIdentity = stats.dev + '\x00' + stats.ino
     if (_stack != null && _stack.indexOf(fileIdentity) !== -1) {
@@ -91,11 +101,15 @@ function relativeKeysForTree (root, relativePath, _stack, _followSymlink) {
       }
       if (entries != null) {
         for (var i = 0; i < entries.length; i++) {
-          childKeys = childKeys.concat(relativeKeysForTree(root, path.join(relativePath, entries[i]), _stack))
+
+          var keys = keysForTree(path.join(fullPath, entries[i]), {
+            _stack: _stack,
+            relativePath: path.join(relativePath, entries[i])
+          })
+          childKeys = childKeys.concat(keys)
         }
       }
     }
-    statKeys = ['dir - stats', stats.mode, stats.size];
   } else if (stats && stats.isSymbolicLink()) {
     if (_stack == null) {
       // From here on in the traversal, we need to guard against symlink
@@ -104,14 +118,14 @@ function relativeKeysForTree (root, relativePath, _stack, _followSymlink) {
       // symlinks.
       _stack = []
     }
-    childKeys = relativeKeysForTree(root, relativePath, _stack, true) // follow symlink
+    childKeys = keysForTree(fullPath, {_stack: _stack, relativePath: relativePath, _followSymlink: true}) // follow symlink
+    statKeys.push(stats.mtime.getTime())
+  } else if (stats && stats.isFile()) {
+    statKeys.push(stats.mtime.getTime())
   }
 
-  if (!statKeys) {
-    statKeys = ['stats', stats.mode, stats.size, stats.mtime.getTime()];
-  }
   // Perhaps we should not use basename to infer the file name
-  return ['path', path.basename(relativePath)]
-    .concat(stats ? statKeys : ['stat failed'])
+  return ['path', relativePath]
+    .concat(statKeys)
     .concat(childKeys)
 }
