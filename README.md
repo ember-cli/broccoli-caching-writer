@@ -6,6 +6,8 @@ Adds a thin caching layer based on the computed hash of the input tree. If the i
 the `updateCache` method will be called, otherwise (input is the same) the results of the last `updateCache`
 call will be used instead.
 
+If you would prefer to preform your plugins work in a non-synchronous way, simply return a promise from `updateCache`.
+
 ## ZOMG!!! TESTS?!?!!?
 
 I know, right?

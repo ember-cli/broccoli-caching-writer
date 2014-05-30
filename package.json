@@ -21,14 +21,14 @@
     "broccoli-kitchen-sink-helpers": "~0.2.0",
     "mkdirp": "~0.4.0",
     "quick-temp": "~0.1.2",
-    "walk-sync": "~0.1.2"
+    "walk-sync": "~0.1.2",
+    "rsvp": "~3.0.6"
   },
   "devDependencies": {
     "mocha": "~1.18.2",
     "rimraf": "~2.2.6",
     "broccoli": "~0.9.0",
     "expect.js": "~0.3.1",
-    "mkdirp": "~0.4.0",
-    "rsvp": "~3.0.6"
+    "mkdirp": "~0.4.0"
   }
 }

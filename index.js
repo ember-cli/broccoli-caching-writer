@@ -1,5 +1,6 @@
 var fs = require('fs');
 var path = require('path');
+var RSVP = require('rsvp');
 var mkdirp = require('mkdirp')
 var walkSync = require('walk-sync');
 var quickTemp = require('quick-temp')
@@ -37,14 +38,22 @@ CachingWriter.prototype.write = function (readTree, destDir) {
     var inputTreeKeys = keysForTree(srcDir);
     var inputTreeHash = helpers.hashStrings(inputTreeKeys);
 
-    if (inputTreeHash !== self._cacheHash) {
-      self.updateCache(srcDir, self.getCleanCacheDir());
+    return RSVP.resolve()
+      .then(function() {
+        var updateCacheResult;
 
-      self._cacheHash     = inputTreeHash;
-      self._cacheTreeKeys = inputTreeKeys;
-    }
+        if (inputTreeHash !== self._cacheHash) {
+          updateCacheResult = self.updateCache(srcDir, self.getCleanCacheDir());
 
-    linkFromCache(self.getCacheDir(), destDir);
+          self._cacheHash     = inputTreeHash;
+          self._cacheTreeKeys = inputTreeKeys;
+        }
+
+        return updateCacheResult;
+      })
+      .finally(function() {
+        linkFromCache(self.getCacheDir(), destDir);
+      });
   })
 };
 

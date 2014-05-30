@@ -122,5 +122,22 @@ describe('broccoli-caching-writer', function(){
           expect(reason.message).to.eql('You must implement updateCache.');
         });
     });
+
+    it('can return a promise that is resolved', function(){
+      var thenCalled = false;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function(srcDir, destDir) {
+          return {then: function(callback) {
+            thenCalled = true;
+            callback();
+          }};
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function(dir) {
+        expect(thenCalled).to.be.ok();
+      });
+    });
   });
 });
