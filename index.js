@@ -36,15 +36,20 @@ CachingWriter.prototype.write = function (readTree, destDir) {
   return readTree(this.inputTree).then(function (srcDir) {
     var inputTreeKeys = keysForTree(srcDir);
     var inputTreeHash = helpers.hashStrings(inputTreeKeys);
+    var updatePromise = null;
+    var linkFunction = function() {
+      linkFromCache(self.getCacheDir(), destDir);
+    };
 
     if (inputTreeHash !== self._cacheHash) {
-      self.updateCache(srcDir, self.getCleanCacheDir());
+      updatePromise = self.updateCache(srcDir, self.getCleanCacheDir());
 
       self._cacheHash     = inputTreeHash;
       self._cacheTreeKeys = inputTreeKeys;
     }
 
-    linkFromCache(self.getCacheDir(), destDir);
+    if (updatePromise) return updatePromise.then(linkFunction);
+    linkFunction();
   })
 };
 
