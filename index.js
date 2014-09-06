@@ -7,6 +7,9 @@ var quickTemp = require('quick-temp')
 var Writer = require('broccoli-writer');
 var helpers = require('broccoli-kitchen-sink-helpers');
 
+
+var canLink = testCanLink();
+
 CachingWriter.prototype = Object.create(Writer.prototype);
 CachingWriter.prototype.constructor = CachingWriter;
 function CachingWriter (inputTree, options) {
@@ -21,8 +24,8 @@ function CachingWriter (inputTree, options) {
       this[key] = options[key];
     }
   }
-  this.canLink = testCanLink();
 };
+
 CachingWriter.prototype.getCacheDir = function () {
   return quickTemp.makeOrReuse(this, 'tmpCacheDir');
 };
@@ -85,7 +88,7 @@ function linkFromCache(srcDir, destDir) {
 
     destFile = path.join(destDir, file);
     mkdirp.sync(path.dirname(destFile));
-    if (this.canLink) {
+    if (canLink) {
       fs.linkSync(srcFile, destFile);
     }
     else {
