@@ -1,6 +1,6 @@
 # Broccoli Caching Writer
 
-[![Build Status](https://travis-ci.org/rjackson/broccoli-caching-writer.svg?branch=master)](https://travis-ci.org/rjackson/broccoli-caching-writer)
+[![Build Status](https://travis-ci.org/rwjblue/broccoli-caching-writer.svg?branch=master)](https://travis-ci.org/rwjblue/broccoli-caching-writer)
 
 Adds a thin caching layer based on the computed hash of the input tree. If the input tree has changed,
 the `updateCache` method will be called, otherwise (input is the same) the results of the last `updateCache`
