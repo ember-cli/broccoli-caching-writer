@@ -171,17 +171,23 @@ function keysForTree (fullPath, options) {
 
 
 function testCanLink () {
-  var canLink = false;
   var canLinkSrc  = path.join(__dirname, "canLinkSrc.tmp");
   var canLinkDest = path.join(__dirname, "canLinkDest.tmp");
+
   try {
-    fs.writeFileSync(canLinkSrc)
+    fs.writeFileSync(canLinkSrc);
+  } catch (e) {
+    return false;
+  }
+
+  try {
     fs.linkSync(canLinkSrc, canLinkDest);
-    canLink = true;
-  }
-  finally {
-    fs.unlinkSync(canLinkDest);
+  } catch (e) {
     fs.unlinkSync(canLinkSrc);
+    return false;
   }
-  return canLink;
+
+  fs.unlinkSync(canLinkDest);
+
+  return true;
 }
