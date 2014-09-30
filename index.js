@@ -24,6 +24,26 @@ function CachingWriter (inputTree, options) {
       this[key] = options[key];
     }
   }
+
+  if (this.filterFromCache === undefined) {
+    this.filterFromCache = {};
+  }
+
+  if (this.filterFromCache.include === undefined) {
+    this.filterFromCache.include = [];
+  }
+
+  if (this.filterFromCache.exclude === undefined) {
+    this.filterFromCache.exclude = [];
+  }
+
+  if (!Array.isArray(this.filterFromCache.include)) {
+    throw new Error("Invalid filterFromCache.include option, it must be an array or undefined.")
+  }
+
+  if (!Array.isArray(this.filterFromCache.exclude)) {
+    throw new Error("Invalid filterFromCache.exclude option, it must be an array or undefined.")
+  }
 };
 
 CachingWriter.prototype.getCacheDir = function () {
@@ -38,7 +58,7 @@ CachingWriter.prototype.write = function (readTree, destDir) {
   var self = this;
 
   return readTree(this.inputTree).then(function (srcDir) {
-    var inputTreeKeys = keysForTree(srcDir);
+    var inputTreeKeys = self.keysForTree(srcDir);
     var inputTreeHash = helpers.hashStrings(inputTreeKeys);
 
     return RSVP.resolve()
@@ -69,9 +89,129 @@ CachingWriter.prototype.updateCache = function (srcDir, destDir) {
   throw new Error('You must implement updateCache.');
 };
 
+// Takes in a path and { include, exclude }. Tests the path using regular expressions and
+// returns true if the path does not match any exclude patterns AND matches atleast
+// one include pattern.
+CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
+  var excludePatterns = this.filterFromCache.exclude,
+      includePatterns = this.filterFromCache.include,
+      i = null;
+
+  // Check exclude patterns
+  for (i = 0; i < excludePatterns.length; i++) {
+    // An exclude pattern that returns true should be ignored
+    if (excludePatterns[i].test(fullPath) === true) {
+      return true;
+    }
+  }
+
+  // Check include patterns
+  if (includePatterns !== undefined && includePatterns.length > 0) {
+    for (i = 0; i < includePatterns.length; i++) {
+      // An include pattern that returns true (and wasn't excluded at all)
+      // should _not_ be ignored
+      if (includePatterns[i].test(fullPath) === true) {
+        return false;
+      }
+    }
+
+    // If no include patterns were matched, ignore this file.
+    return true;
+  }
+
+  // Otherwise, don't ignore this file
+  return false;
+}
+
+
+CachingWriter.prototype.keysForTree = function (fullPath, options) {
+  options = options || {}
+
+  var _stack         = options._stack;
+  var _followSymlink = options._followSymlink;
+  var relativePath   = options.relativePath || '.';
+  var stats;
+  var statKeys;
+
+  try {
+    if (_followSymlink) {
+      stats = fs.statSync(fullPath);
+    } else {
+      stats = fs.lstatSync(fullPath);
+    }
+  } catch (err) {
+    console.warn('Warning: failed to stat ' + fullPath);
+    // fullPath has probably ceased to exist. Leave `stats` undefined and
+    // proceed hashing.
+  }
+  var childKeys = [];
+  if (stats) {
+    statKeys = ['stats', stats.mode];
+  } else {
+    statKeys = ['stat failed'];
+  }
+  if (stats && stats.isDirectory()) {
+    var fileIdentity = stats.dev + '\x00' + stats.ino;
+    if (_stack != null && _stack.indexOf(fileIdentity) !== -1) {
+      console.warn('Symlink directory loop detected at ' + fullPath + ' (note: loop detection may have false positives on Windows)');
+    } else {
+      if (_stack != null) _stack = _stack.concat([fileIdentity]);
+      var entries;
+      try {
+        entries = fs.readdirSync(fullPath).sort();
+      } catch (err) {
+        console.warn('Warning: Failed to read directory ' + fullPath);
+        console.warn(err.stack);
+        childKeys = ['readdir failed'];
+        // That's all there is to say about this directory.
+      }
+      if (entries != null) {
+        for (var i = 0; i < entries.length; i++) {
+
+          var keys = this.keysForTree(path.join(fullPath, entries[i]), {
+            _stack: _stack,
+            relativePath: path.join(relativePath, entries[i])
+          });
+          childKeys = childKeys.concat(keys);
+        }
+      }
+    }
+  } else if (stats && stats.isSymbolicLink()) {
+    if (_stack == null) {
+      // From here on in the traversal, we need to guard against symlink
+      // directory loops. _stack is kept null in the absence of symlinks to we
+      // don't have to deal with Windows for now, as long as it doesn't use
+      // symlinks.
+      _stack = [];
+    }
+
+    if (this.shouldBeIgnored(fullPath)) {
+      return [];
+    }
+
+    childKeys = this.keysForTree(fullPath, {
+      _stack: _stack,
+      relativePath: relativePath,
+      _followSymlink: true,
+    }); // follow symlink
+    statKeys.push(stats.mtime.getTime());
+  } else if (stats && stats.isFile()) {
+    if (this.shouldBeIgnored(fullPath)) {
+      return [];
+    }
+    statKeys.push(stats.mtime.getTime(), stats.size);
+  }
+
+  // Perhaps we should not use basename to infer the file name
+  return ['path', relativePath]
+    .concat(statKeys)
+    .concat(childKeys);
+}
+
 module.exports = CachingWriter;
 
-function linkFromCache(srcDir, destDir) {
+
+function linkFromCache (srcDir, destDir) {
   var files = walkSync(srcDir);
   var length = files.length;
   var file;
@@ -96,79 +236,6 @@ function linkFromCache(srcDir, destDir) {
     }
   }
 }
-
-function keysForTree (fullPath, options) {
-  options = options || {}
-
-  var _stack         = options._stack;
-  var _followSymlink = options._followSymlink;
-  var relativePath   = options.relativePath || '.';
-  var stats;
-  var statKeys;
-
-  try {
-    if (_followSymlink) {
-      stats = fs.statSync(fullPath);
-    } else {
-      stats = fs.lstatSync(fullPath);
-    }
-  } catch (err) {
-    console.warn('Warning: failed to stat ' + fullPath);
-    // fullPath has probably ceased to exist. Leave `stats` undefined and
-    // proceed hashing.
-  }
-  var childKeys = [];
-  if (stats) {
-    statKeys = ['stats', stats.mode, stats.size];
-  } else {
-    statKeys = ['stat failed'];
-  }
-  if (stats && stats.isDirectory()) {
-    var fileIdentity = stats.dev + '\x00' + stats.ino;
-    if (_stack != null && _stack.indexOf(fileIdentity) !== -1) {
-      console.warn('Symlink directory loop detected at ' + fullPath + ' (note: loop detection may have false positives on Windows)');
-    } else {
-      if (_stack != null) _stack = _stack.concat([fileIdentity]);
-      var entries;
-      try {
-        entries = fs.readdirSync(fullPath).sort();
-      } catch (err) {
-        console.warn('Warning: Failed to read directory ' + fullPath);
-        console.warn(err.stack);
-        childKeys = ['readdir failed'];
-        // That's all there is to say about this directory.
-      }
-      if (entries != null) {
-        for (var i = 0; i < entries.length; i++) {
-
-          var keys = keysForTree(path.join(fullPath, entries[i]), {
-            _stack: _stack,
-            relativePath: path.join(relativePath, entries[i])
-          });
-          childKeys = childKeys.concat(keys);
-        }
-      }
-    }
-  } else if (stats && stats.isSymbolicLink()) {
-    if (_stack == null) {
-      // From here on in the traversal, we need to guard against symlink
-      // directory loops. _stack is kept null in the absence of symlinks to we
-      // don't have to deal with Windows for now, as long as it doesn't use
-      // symlinks.
-      _stack = [];
-    }
-    childKeys = keysForTree(fullPath, {_stack: _stack, relativePath: relativePath, _followSymlink: true}); // follow symlink
-    statKeys.push(stats.mtime.getTime());
-  } else if (stats && stats.isFile()) {
-    statKeys.push(stats.mtime.getTime());
-  }
-
-  // Perhaps we should not use basename to infer the file name
-  return ['path', relativePath]
-    .concat(statKeys)
-    .concat(childKeys);
-}
-
 
 function testCanLink () {
   var canLinkSrc  = path.join(__dirname, "canLinkSrc.tmp");
