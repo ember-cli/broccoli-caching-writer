@@ -17,12 +17,13 @@
     "javascript"
   ],
   "dependencies": {
-    "broccoli-writer": "~0.1.1",
     "broccoli-kitchen-sink-helpers": "~0.2.0",
+    "broccoli-writer": "~0.1.1",
     "mkdirp": "~0.4.0",
     "quick-temp": "~0.1.2",
-    "walk-sync": "~0.1.2",
-    "rsvp": "~3.0.6"
+    "rimraf": "^2.2.8",
+    "rsvp": "~3.0.6",
+    "walk-sync": "~0.1.2"
   },
   "devDependencies": {
     "mocha": "~1.18.2",

@@ -1,9 +1,11 @@
 var fs = require('fs');
 var path = require('path');
 var RSVP = require('rsvp');
-var mkdirp = require('mkdirp')
+var mkdirp = require('mkdirp');
+var rimraf = require('rimraf');
+var crypto = require('crypto');
 var walkSync = require('walk-sync');
-var quickTemp = require('quick-temp')
+var quickTemp = require('quick-temp');
 var Writer = require('broccoli-writer');
 var helpers = require('broccoli-kitchen-sink-helpers');
 
@@ -16,6 +18,11 @@ function CachingWriter (inputTree, options) {
   if (!(this instanceof CachingWriter)) return new CachingWriter(inputTree, options);
 
   this.inputTree = inputTree;
+
+  this._oldCacheDirs = [];
+  this._cacheInfoByHash = {};
+
+  this._fileDigestCache = {};
 
   options = options || {};
 
@@ -50,7 +57,20 @@ CachingWriter.prototype.getCacheDir = function () {
   return quickTemp.makeOrReuse(this, 'tmpCacheDir');
 };
 
+// Returns a new cache dir and saves a reference to the old one (so that it can
+// still be used, but still will eventually get deleted on cleanup)
 CachingWriter.prototype.getCleanCacheDir = function () {
+
+  // Store the old cache dir and ensure that `this.tmpCacheDir` is emptied so
+  // we definitely get a new cache dir
+  if (this.tmpCacheDir) {
+    this._oldCacheDirs.push(this.tmpCacheDir);
+    delete this.tmpCacheDir;
+
+    // TODO, make oldCacheDirs do some sort of LRU eviction so that caches
+    // don't grow forever
+  }
+
   return quickTemp.makeOrRemake(this, 'tmpCacheDir');
 };
 
@@ -65,23 +85,47 @@ CachingWriter.prototype.write = function (readTree, destDir) {
       .then(function() {
         var updateCacheResult;
 
-        if (inputTreeHash !== self._cacheHash) {
-          updateCacheResult = self.updateCache(srcDir, self.getCleanCacheDir());
+        if (!self.hasCacheForHash(inputTreeHash)) {
+          var newCachePath = self.getCleanCacheDir();
+          self._cacheInfoByHash[inputTreeHash] = {
+            hash: inputTreeHash,
+            path: newCachePath
+          };
 
-          self._cacheHash     = inputTreeHash;
-          self._cacheTreeKeys = inputTreeKeys;
+          updateCacheResult = self.updateCache(srcDir, newCachePath);
         }
 
         return updateCacheResult;
       })
       .finally(function() {
-        linkFromCache(self.getCacheDir(), destDir);
+        linkFromCache(self.cachePathForHash(inputTreeHash), destDir);
       });
   });
 };
 
+CachingWriter.prototype.cachePathForHash = function(treeHash) {
+  var cacheInfo = this._cacheInfoByHash[treeHash];
+
+  if (cacheInfo !== undefined) {
+    return cacheInfo.path;
+  }
+};
+
+CachingWriter.prototype.hasCacheForHash = function(treeHash) {
+  return this.cachePathForHash(treeHash) !== undefined;
+};
+
 CachingWriter.prototype.cleanup = function () {
   quickTemp.remove(this, 'tmpCacheDir');
+
+  // Remove all the old cache dirs we've collected as well
+  for (var i = 0; i < this._oldCacheDirs.length; i++) {
+    rimraf.sync(this._oldCacheDirs[i]);
+  }
+
+  this._oldCacheDirs = [];
+  this._cacheInfoByHash = {};
+
   Writer.prototype.cleanup.call(this);
 };
 
@@ -176,6 +220,7 @@ CachingWriter.prototype.keysForTree = function (fullPath, options) {
         }
       }
     }
+
   } else if (stats && stats.isSymbolicLink()) {
     if (_stack == null) {
       // From here on in the traversal, we need to guard against symlink
@@ -194,19 +239,42 @@ CachingWriter.prototype.keysForTree = function (fullPath, options) {
       relativePath: relativePath,
       _followSymlink: true,
     }); // follow symlink
-    statKeys.push(stats.mtime.getTime());
+
   } else if (stats && stats.isFile()) {
     if (this.shouldBeIgnored(fullPath)) {
       return [];
     }
-    statKeys.push(stats.mtime.getTime(), stats.size);
+    statKeys.push('contentdigest', this.digestOfFileContents(fullPath, relativePath, stats));
   }
 
   // Perhaps we should not use basename to infer the file name
   return ['path', relativePath]
     .concat(statKeys)
     .concat(childKeys);
-}
+};
+
+// Get's a hashed digest of a file's contents. Stores that digest into another
+// cache so that we don't need to re-read the file's contents in the basic case.
+// (similar to how Sprockets does it, https://github.com/sstephenson/sprockets/blob/3c97dbd1faa811ad73e47a637f11ca2852ea0101/lib/sprockets/base.rb#L43-L55)
+CachingWriter.prototype.digestOfFileContents = function (fullPath, relativePath, stats) {
+  var fileDigestCacheKey = [
+    relativePath,
+    stats.mtime.getTime(),
+    stats.size
+  ].join(',');
+
+  var digest = this._fileDigestCache[fileDigestCacheKey];
+
+  if (digest === undefined) {
+    digest = this._fileDigestCache[fileDigestCacheKey] = crypto
+      .createHash('sha1')
+      .update(fs.readFileSync(fullPath))
+      .digest('hex');
+  }
+
+  return digest;
+};
+
 
 module.exports = CachingWriter;
 
