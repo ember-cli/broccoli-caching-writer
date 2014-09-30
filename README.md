@@ -8,6 +8,30 @@ call will be used instead.
 
 If you would prefer to perform your plugins work in a non-synchronous way, simply return a promise from `updateCache`.
 
+## Documentation
+
+### `CachingWriter(inputTree, options)`
+
+----
+
+`filterFromCache.include` *{Array of RegExps}*
+
+An array of regular expressions that files and directories in the input tree must pass (match at least one pattern) in order to be included in the cache hash for rebuilds. In other words, a whitelist of patterns that identify which files and/or directories can trigger a rebuild.
+
+
+Default: `[]`
+
+----
+
+`filterFromCache.exclude` *{Array of RegExps}*
+
+An array of regular expressions that files and directories in the input tree cannot pass in order to be included in the cache hash for rebuilds. In other words, a blacklist of patterns that identify which files and/or directories will never trigger a rebuild.
+
+*Note, in the case when a file or directory matches both an include and exlude pattern, the exclude pattern wins*
+
+Default: `[]`
+
+
 ## Switching from `broccoli-writer`
 
 If your broccoli plugin currently extends `broccoli-writer`,
@@ -24,6 +48,7 @@ and you wish to extend `broccoli-caching-writer` instead:
   - Get rid of `readTree`, as `srcDir` is already provided:
     - Code that looks like: `return readTree(this.inputTree).then(function (srcDir) { /* Do the main processing */ });`
     - Simply extract the code, `/* Do the main processing */`, and get rid of the function wrapping it.
+
 
 ## ZOMG!!! TESTS?!?!!?
 

@@ -15,7 +15,9 @@ var builder;
 
 describe('broccoli-caching-writer', function(){
   var sourcePath = 'tests/fixtures/sample-project';
-  var dummyChangedFile = sourcePath + '/dummy-changed-file';
+  var existingJSFile = sourcePath + '/core.js';
+  var dummyChangedFile = sourcePath + '/dummy-changed-file.txt';
+  var dummyJSChangedFile = sourcePath + '/dummy-changed-file.js';
 
   afterEach(function() {
     if (builder) {
@@ -25,6 +27,12 @@ describe('broccoli-caching-writer', function(){
     if (fs.existsSync(dummyChangedFile)) {
       fs.unlinkSync(dummyChangedFile);
     }
+
+    if (fs.existsSync(dummyJSChangedFile)) {
+      fs.unlinkSync(dummyJSChangedFile);
+    }
+
+    fs.writeFileSync(existingJSFile, '"YIPPIE"\n');
   });
 
   describe('write', function() {
@@ -92,6 +100,127 @@ describe('broccoli-caching-writer', function(){
               builder.build(),
               builder.build()
             ])
+        })
+        .finally(function() {
+          expect(updateCacheCount).to.eql(2);
+        });
+    });
+
+    it('calls updateCache again if existing file is changed', function(){
+      var updateCacheCount = 0;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() {
+          updateCacheCount++;
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+
+      return builder.build()
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
+        })
+        .then(function() {
+          fs.writeFileSync(existingJSFile, '"YIPPIE"\n"KI-YAY"\n');
+
+          return RSVP.all([
+              builder.build(),
+              builder.build(),
+              builder.build()
+            ])
+        })
+        .finally(function() {
+          expect(updateCacheCount).to.eql(2);
+        });
+    });
+
+    it('does not call updateCache again if input is changed but filtered from cache (via exclude)', function(){
+      var updateCacheCount = 0;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() {
+          updateCacheCount++;
+        },
+        filterFromCache: {
+          exclude: [/.*\.txt$/]
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+
+      return builder.build()
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
+        })
+        .then(function() {
+          fs.writeFileSync(dummyChangedFile, 'bergh');
+
+          return RSVP.all([
+              builder.build(),
+              builder.build(),
+              builder.build()
+            ]);
+        })
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
+        });
+    });
+
+    it('does not call updateCache again if input is changed but filtered from cache (via include)', function(){
+      var updateCacheCount = 0;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() {
+          updateCacheCount++;
+        },
+        filterFromCache: {
+          include: [/.*\.js$/]
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+
+      return builder.build()
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
+        })
+        .then(function() {
+          fs.writeFileSync(dummyChangedFile, 'bergh');
+
+          return RSVP.all([
+              builder.build(),
+              builder.build(),
+              builder.build()
+            ]);
+        })
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
+        });
+    });
+
+    it('does call updateCache again if input is changed is included in the cache filter', function(){
+      var updateCacheCount = 0;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() {
+          updateCacheCount++;
+        },
+        filterFromCache: {
+          include: [/.*\.js$/]
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+
+      return builder.build()
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
+        })
+        .then(function() {
+          fs.writeFileSync(dummyJSChangedFile, 'bergh');
+
+          return RSVP.all([
+              builder.build(),
+              builder.build(),
+              builder.build()
+            ]);
         })
         .finally(function() {
           expect(updateCacheCount).to.eql(2);
