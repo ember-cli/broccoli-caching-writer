@@ -19,6 +19,12 @@ describe('broccoli-caching-writer', function(){
   var dummyChangedFile = sourcePath + '/dummy-changed-file.txt';
   var dummyJSChangedFile = sourcePath + '/dummy-changed-file.js';
 
+  beforeEach(function() {
+    // Rest the mtime to some specific time in the past, so that other tests
+    // don't muck with the mtime
+    fs.utimesSync(existingJSFile, new Date(), new Date(1399424542459));
+  });
+
   afterEach(function() {
     if (builder) {
       builder.cleanup();
@@ -131,6 +137,34 @@ describe('broccoli-caching-writer', function(){
         })
         .finally(function() {
           expect(updateCacheCount).to.eql(2);
+        });
+    });
+
+    it('does not call updateCache if an existing file is modified but the content stays the same', function(){
+      var updateCacheCount = 0;
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() {
+          updateCacheCount++;
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+
+      return builder.build()
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
+        })
+        .then(function() {
+          fs.writeFileSync(existingJSFile, fs.readFileSync(existingJSFile));
+
+          return RSVP.all([
+              builder.build(),
+              builder.build(),
+              builder.build()
+            ])
+        })
+        .finally(function() {
+          expect(updateCacheCount).to.eql(1);
         });
     });
 
