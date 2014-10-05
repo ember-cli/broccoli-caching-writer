@@ -93,9 +93,9 @@ CachingWriter.prototype.updateCache = function (srcDir, destDir) {
 // returns true if the path does not match any exclude patterns AND matches atleast
 // one include pattern.
 CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
-  var excludePatterns = this.filterFromCache.exclude,
-      includePatterns = this.filterFromCache.include,
-      i = null;
+  var excludePatterns = this.filterFromCache.exclude;
+  var includePatterns = this.filterFromCache.include;
+  var i = null;
 
   // Check exclude patterns
   for (i = 0; i < excludePatterns.length; i++) {
