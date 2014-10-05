@@ -124,21 +124,13 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
 }
 
 
-CachingWriter.prototype.keysForTree = function (fullPath, options) {
-  options = options || {}
-
-  var _stack         = options._stack;
-  var _followSymlink = options._followSymlink;
-  var relativePath   = options.relativePath || '.';
+CachingWriter.prototype.keysForTree = function (fullPath, initialRelativePath) {
+  var relativePath   = initialRelativePath || '.'
   var stats;
   var statKeys;
 
   try {
-    if (_followSymlink) {
-      stats = fs.statSync(fullPath);
-    } else {
-      stats = fs.lstatSync(fullPath);
-    }
+    stats = fs.statSync(fullPath);
   } catch (err) {
     console.warn('Warning: failed to stat ' + fullPath);
     // fullPath has probably ceased to exist. Leave `stats` undefined and
@@ -152,49 +144,25 @@ CachingWriter.prototype.keysForTree = function (fullPath, options) {
   }
   if (stats && stats.isDirectory()) {
     var fileIdentity = stats.dev + '\x00' + stats.ino;
-    if (_stack != null && _stack.indexOf(fileIdentity) !== -1) {
-      console.warn('Symlink directory loop detected at ' + fullPath + ' (note: loop detection may have false positives on Windows)');
-    } else {
-      if (_stack != null) _stack = _stack.concat([fileIdentity]);
-      var entries;
-      try {
-        entries = fs.readdirSync(fullPath).sort();
-      } catch (err) {
-        console.warn('Warning: Failed to read directory ' + fullPath);
-        console.warn(err.stack);
-        childKeys = ['readdir failed'];
-        // That's all there is to say about this directory.
-      }
-      if (entries != null) {
-        for (var i = 0; i < entries.length; i++) {
+    var entries;
+    try {
+      entries = fs.readdirSync(fullPath).sort();
+    } catch (err) {
+      console.warn('Warning: Failed to read directory ' + fullPath);
+      console.warn(err.stack);
+      childKeys = ['readdir failed'];
+      // That's all there is to say about this directory.
+    }
+    if (entries != null) {
+      for (var i = 0; i < entries.length; i++) {
 
-          var keys = this.keysForTree(path.join(fullPath, entries[i]), {
-            _stack: _stack,
-            relativePath: path.join(relativePath, entries[i])
-          });
-          childKeys = childKeys.concat(keys);
-        }
+        var keys = this.keysForTree(
+          path.join(fullPath, entries[i]),
+          path.join(relativePath, entries[i])
+        );
+        childKeys = childKeys.concat(keys);
       }
     }
-  } else if (stats && stats.isSymbolicLink()) {
-    if (_stack == null) {
-      // From here on in the traversal, we need to guard against symlink
-      // directory loops. _stack is kept null in the absence of symlinks to we
-      // don't have to deal with Windows for now, as long as it doesn't use
-      // symlinks.
-      _stack = [];
-    }
-
-    if (this.shouldBeIgnored(fullPath)) {
-      return [];
-    }
-
-    childKeys = this.keysForTree(fullPath, {
-      _stack: _stack,
-      relativePath: relativePath,
-      _followSymlink: true,
-    }); // follow symlink
-    statKeys.push(stats.mtime.getTime());
   } else if (stats && stats.isFile()) {
     if (this.shouldBeIgnored(fullPath)) {
       return [];
