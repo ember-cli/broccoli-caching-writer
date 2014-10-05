@@ -301,5 +301,15 @@ describe('broccoli-caching-writer', function(){
     it('returns false if no patterns were used', function() {
       expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
     });
+
+    it('uses a cache to ensure we do not recalculate the filtering on subsequent attempts', function() {
+      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
+
+      // changing the filter mid-run should have no result on
+      // previously calculated paths
+      tree.filterFromCache.include = [ /.foo$/, /.bar$/ ];
+
+      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
+    });
   });
 });
