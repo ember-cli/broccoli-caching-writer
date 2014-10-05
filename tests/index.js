@@ -264,9 +264,42 @@ describe('broccoli-caching-writer', function(){
       });
 
       builder = new broccoli.Builder(tree);
-      return builder.build().then(function(dir) {
+      return builder.build().then(function() {
         expect(thenCalled).to.be.ok();
       });
+    });
+  });
+
+  describe('shouldBeIgnored', function() {
+    var tree;
+
+    beforeEach(function() {
+      tree = cachingWriter(sourcePath);
+    });
+
+    it('returns true if the path is included in an exclude filter', function() {
+      tree.filterFromCache.exclude = [ /.foo$/, /.bar$/ ];
+
+      expect(tree.shouldBeIgnored('blah/blah/blah.foo')).to.be.ok();
+      expect(tree.shouldBeIgnored('blah/blah/blah.bar')).to.be.ok();
+      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
+    });
+
+    it('returns false if the path is included in an include filter', function() {
+      tree.filterFromCache.include = [ /.foo$/, /.bar$/ ];
+
+      expect(tree.shouldBeIgnored('blah/blah/blah.foo')).to.not.be.ok();
+      expect(tree.shouldBeIgnored('blah/blah/blah.bar')).to.not.be.ok();
+    });
+
+    it('returns true if the path is not included in an include filter', function() {
+      tree.filterFromCache.include = [ /.foo$/, /.bar$/ ];
+
+      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.be.ok();
+    });
+
+    it('returns false if no patterns were used', function() {
+      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
     });
   });
 });
