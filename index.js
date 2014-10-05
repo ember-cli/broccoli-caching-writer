@@ -16,6 +16,7 @@ function CachingWriter (inputTree, options) {
   if (!(this instanceof CachingWriter)) return new CachingWriter(inputTree, options);
 
   this.inputTree = inputTree;
+  this._shouldBeIgnoredCache = Object.create(null);
 
   options = options || {};
 
@@ -93,6 +94,10 @@ CachingWriter.prototype.updateCache = function (srcDir, destDir) {
 // returns true if the path does not match any exclude patterns AND matches atleast
 // one include pattern.
 CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
+  if (this._shouldBeIgnoredCache[fullPath] !== undefined) {
+    return this._shouldBeIgnoredCache[fullPath];
+  }
+
   var excludePatterns = this.filterFromCache.exclude;
   var includePatterns = this.filterFromCache.include;
   var i = null;
@@ -101,7 +106,7 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
   for (i = 0; i < excludePatterns.length; i++) {
     // An exclude pattern that returns true should be ignored
     if (excludePatterns[i].test(fullPath) === true) {
-      return true;
+      return this._shouldBeIgnoredCache[fullPath] = true;
     }
   }
 
@@ -111,16 +116,16 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
       // An include pattern that returns true (and wasn't excluded at all)
       // should _not_ be ignored
       if (includePatterns[i].test(fullPath) === true) {
-        return false;
+        return this._shouldBeIgnoredCache[fullPath] = false;
       }
     }
 
     // If no include patterns were matched, ignore this file.
-    return true;
+    return this._shouldBeIgnoredCache[fullPath] = true;
   }
 
   // Otherwise, don't ignore this file
-  return false;
+  return this._shouldBeIgnoredCache[fullPath] = false;
 }
 
 
