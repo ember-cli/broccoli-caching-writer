@@ -1,22 +1,20 @@
 var fs = require('fs');
 var path = require('path');
 var RSVP = require('rsvp');
+var rimraf = RSVP.denodeify(require('rimraf'));
 var mkdirp = require('mkdirp')
 var walkSync = require('walk-sync');
 var quickTemp = require('quick-temp')
-var Writer = require('broccoli-writer');
 var helpers = require('broccoli-kitchen-sink-helpers');
+var symlinkOrCopy = require('symlink-or-copy');
+var generateRandomString = require('./lib/generate-random-string');
 
-
-var canLink = testCanLink();
-
-CachingWriter.prototype = Object.create(Writer.prototype);
-CachingWriter.prototype.constructor = CachingWriter;
 function CachingWriter (inputTree, options) {
   if (!(this instanceof CachingWriter)) return new CachingWriter(inputTree, options);
 
   this.inputTree = inputTree;
   this._shouldBeIgnoredCache = Object.create(null);
+  this.destDir = path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp');
 
   options = options || {};
 
@@ -46,6 +44,7 @@ function CachingWriter (inputTree, options) {
     throw new Error("Invalid filterFromCache.exclude option, it must be an array or undefined.")
   }
 };
+CachingWriter.prototype.constructor = CachingWriter;
 
 CachingWriter.prototype.getCacheDir = function () {
   return quickTemp.makeOrReuse(this, 'tmpCacheDir');
@@ -55,7 +54,7 @@ CachingWriter.prototype.getCleanCacheDir = function () {
   return quickTemp.makeOrRemake(this, 'tmpCacheDir');
 };
 
-CachingWriter.prototype.write = function (readTree, destDir) {
+CachingWriter.prototype.read = function (readTree) {
   var self = this;
 
   return readTree(this.inputTree).then(function (srcDir) {
@@ -75,15 +74,22 @@ CachingWriter.prototype.write = function (readTree, destDir) {
 
         return updateCacheResult;
       })
-      .finally(function() {
-        linkFromCache(self.getCacheDir(), destDir);
+      .then(function() {
+        return rimraf(self.destDir);
+      })
+      .then(function() {
+        symlinkOrCopy.sync(self.getCacheDir(), self.destDir);
+      })
+      .then(function() {
+        return self.destDir;
       });
   });
 };
 
 CachingWriter.prototype.cleanup = function () {
   quickTemp.remove(this, 'tmpCacheDir');
-  Writer.prototype.cleanup.call(this);
+
+  return rimraf(this.destDir);
 };
 
 CachingWriter.prototype.updateCache = function (srcDir, destDir) {
@@ -182,52 +188,3 @@ CachingWriter.prototype.keysForTree = function (fullPath, initialRelativePath) {
 }
 
 module.exports = CachingWriter;
-
-
-function linkFromCache (srcDir, destDir) {
-  var files = walkSync(srcDir);
-  var length = files.length;
-  var file;
-
-  for (var i = 0; i < length; i++) {
-    file = files[i];
-
-    var srcFile = path.join(srcDir, file);
-    var stats   = fs.statSync(srcFile);
-
-    if (stats.isDirectory()) { continue; }
-
-    if (!stats.isFile()) { throw new Error('Can not link non-file.'); }
-
-    destFile = path.join(destDir, file);
-    mkdirp.sync(path.dirname(destFile));
-    if (canLink) {
-      fs.linkSync(srcFile, destFile);
-    }
-    else {
-      fs.writeFileSync(destFile, fs.readFileSync(srcFile));
-    }
-  }
-}
-
-function testCanLink () {
-  var canLinkSrc  = path.join(__dirname, "canLinkSrc.tmp");
-  var canLinkDest = path.join(__dirname, "canLinkDest.tmp");
-
-  try {
-    fs.writeFileSync(canLinkSrc);
-  } catch (e) {
-    return false;
-  }
-
-  try {
-    fs.linkSync(canLinkSrc, canLinkDest);
-  } catch (e) {
-    fs.unlinkSync(canLinkSrc);
-    return false;
-  }
-
-  fs.unlinkSync(canLinkDest);
-
-  return true;
-}
