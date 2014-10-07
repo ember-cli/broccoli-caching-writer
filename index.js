@@ -11,14 +11,6 @@ var generateRandomString = require('./lib/generate-random-string');
 function CachingWriter (inputTrees, options) {
   if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
 
-  if (Array.isArray(inputTrees)) {
-    this.inputTrees = inputTrees;
-    this._singleMode = false;
-  } else {
-    this.inputTrees = [inputTrees];
-    this._singleMode = true;
-  }
-
   this._inputTreeCacheHash = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this.destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
@@ -30,6 +22,17 @@ function CachingWriter (inputTrees, options) {
       this[key] = options[key];
     }
   }
+
+  if (Array.isArray(inputTrees)) {
+    if (this.enforceSingleInputTree) {
+      throw new Error('You passed an array of input trees, but only a single tree is allowed.');
+    }
+
+    this.inputTrees = inputTrees;
+  } else {
+    this.inputTrees = [inputTrees];
+  }
+
 
   if (this.filterFromCache === undefined) {
     this.filterFromCache = {};
@@ -52,6 +55,8 @@ function CachingWriter (inputTrees, options) {
   }
 };
 CachingWriter.prototype.constructor = CachingWriter;
+
+CachingWriter.prototype.enforceSingleInputTree = false;
 
 CachingWriter.prototype.getCacheDir = function () {
   return quickTemp.makeOrReuse(this, 'tmpCacheDir');
@@ -81,7 +86,7 @@ CachingWriter.prototype.read = function (readTree) {
       }
 
       if (invalidateCache) {
-        var updateCacheSrcArg = self._singleMode ? inputPaths[0] : inputPaths;
+        var updateCacheSrcArg = self.enforceSingleInputTree ? inputPaths[0] : inputPaths;
         updateCacheResult = self.updateCache(updateCacheSrcArg, self.getCleanCacheDir());
 
         self._inputTreeCacheHash = inputTreeHashes;
