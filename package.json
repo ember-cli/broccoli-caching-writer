@@ -17,16 +17,16 @@
     "javascript"
   ],
   "dependencies": {
-    "broccoli-kitchen-sink-helpers": "~0.2.5",
+    "broccoli-kitchen-sink-helpers": "^0.2.5",
     "promise-map-series": "^0.2.0",
-    "quick-temp": "~0.1.2",
-    "rimraf": "~2.2.6",
-    "rsvp": "~3.0.6",
+    "quick-temp": "^0.1.2",
+    "rimraf": "^2.2.8",
+    "rsvp": "^3.0.14",
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
     "mocha": "~1.18.2",
-    "broccoli": "~0.13.0",
-    "expect.js": "~0.3.1"
+    "broccoli": "^0.13.0",
+    "expect.js": "^0.3.1"
   }
 }
