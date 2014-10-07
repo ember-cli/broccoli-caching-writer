@@ -43,15 +43,15 @@ If your broccoli plugin currently extends `broccoli-writer`,
 and you wish to extend `broccoli-caching-writer` instead:
 
 1. Switch the constructor
-  - Require this module: `var cachingWriter  = require('broccoli-caching-writer');`
-  - Change the prototype to use `cachingWriter`: `MyBroccoliWriter.prototype = Object.create(cachingWriter.prototype);`
-  - In the constructor, ensure that you are setting the value `this.inputTree`, if you are not already: `this.inputTree = inputTree`
+  - Require this module: `var CachingWriter  = require('broccoli-caching-writer');`
+  - Change the prototype to use `CachingWriter`: `MyBroccoliWriter.prototype = Object.create(CachingWriter.prototype);`
+  - In the constructor, ensure that you are calling `CachingWriter.apply(this, arguments);`.
 2. Switch `write` function for an `updateCache` function.
   - Switch the function signatures:
     - From: `MyBroccoliWriter.prototype.write = function(readTree, destDir) {`
     - To: `MyBroccoliWriter.prototype.updateCache = function(srcDir, destDir) {`
-  - Get rid of `readTree`, as `srcDir` is already provided:
-    - Code that looks like: `return readTree(this.inputTree).then(function (srcDir) { /* Do the main processing */ });`
+  - Get rid of `readTree`, as `srcPaths` (array of paths from input trees) is already provided:
+    - Code that looks like: `return readTree(this.inputTree).then(function (srcPaths) { /* Do the main processing */ });`
     - Simply extract the code, `/* Do the main processing */`, and get rid of the function wrapping it.
 
 
