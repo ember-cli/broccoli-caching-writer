@@ -48,6 +48,25 @@ describe('broccoli-caching-writer', function(){
     return promise;
   }
 
+  describe('enforceSingleInputTree', function() {
+    it('defaults `enforceSingleInputTree` to false', function() {
+      var tree = cachingWriter(sourcePath, {
+        updateCache: function() { }
+      });
+
+      expect(tree.enforceSingleInputTree).to.not.be.ok();
+    });
+
+    it('throws an error if enforceSingleInputTree is true, and an array is passed', function() {
+      expect(function() {
+        var tree = cachingWriter([sourcePath, secondaryPath], {
+          enforceSingleInputTree: true,
+          updateCache: function() { }
+        });
+      }).throwException(/You passed an array of input trees, but only a single tree is allowed./);
+    });
+  });
+
   describe('write', function() {
     it('calls updateCache when there is no cache', function(){
       var updateCacheCalled = false;
@@ -63,11 +82,25 @@ describe('broccoli-caching-writer', function(){
       });
     });
 
+    it('calls updateCache with a single path if enforceSingleInputTree is true', function(){
+      var updateCacheCalled = false;
+      var tree = cachingWriter(sourcePath, {
+        enforceSingleInputTree: true,
+        updateCache: function(srcDir, destDir) {
+          expect(fs.statSync(srcDir).isDirectory()).to.be.ok();
+          expect(fs.statSync(destDir).isDirectory()).to.be.ok();
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+      return builder.build()
+    });
+
     it('is provided a source and destination directory', function(){
       var updateCacheCalled = false;
       var tree = cachingWriter(sourcePath, {
         updateCache: function(srcDir, destDir) {
-          expect(fs.statSync(srcDir).isDirectory()).to.be.ok();
+          expect(fs.statSync(srcDir[0]).isDirectory()).to.be.ok();
           expect(fs.statSync(destDir).isDirectory()).to.be.ok();
         }
       });
