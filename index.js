@@ -2,15 +2,24 @@ var fs = require('fs');
 var path = require('path');
 var RSVP = require('rsvp');
 var rimraf = RSVP.denodeify(require('rimraf'));
+var mapSeries = require('promise-map-series');
 var quickTemp = require('quick-temp')
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
 var generateRandomString = require('./lib/generate-random-string');
 
-function CachingWriter (inputTree, options) {
-  if (!(this instanceof CachingWriter)) return new CachingWriter(inputTree, options);
+function CachingWriter (inputTrees, options) {
+  if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
 
-  this.inputTree = inputTree;
+  if (Array.isArray(inputTrees)) {
+    this.inputTrees = inputTrees;
+    this._singleMode = false;
+  } else {
+    this.inputTrees = [inputTrees];
+    this._singleMode = true;
+  }
+
+  this._inputTreeCacheHash = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this.destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
 
@@ -55,33 +64,40 @@ CachingWriter.prototype.getCleanCacheDir = function () {
 CachingWriter.prototype.read = function (readTree) {
   var self = this;
 
-  return readTree(this.inputTree).then(function (srcDir) {
-    var inputTreeKeys = self.keysForTree(srcDir);
-    var inputTreeHash = helpers.hashStrings(inputTreeKeys);
+  return mapSeries(this.inputTrees, readTree)
+    .then(function(inputPaths) {
+      var inputTreeHashes = [];
+      var invalidateCache = false;
+      var keys, dir, updateCacheResult;
 
-    return RSVP.resolve()
-      .then(function() {
-        var updateCacheResult;
+      for (var i = 0, l = inputPaths.length; i < l; i++) {
+        dir = inputPaths[i];
+        keys = self.keysForTree(dir);
+        inputTreeHashes[i] = helpers.hashStrings(keys);
 
-        if (inputTreeHash !== self._cacheHash) {
-          updateCacheResult = self.updateCache(srcDir, self.getCleanCacheDir());
-
-          self._cacheHash     = inputTreeHash;
-          self._cacheTreeKeys = inputTreeKeys;
+        if (self._inputTreeCacheHash[i] !== inputTreeHashes[i]) {
+          invalidateCache = true;
         }
+      }
 
-        return updateCacheResult;
-      })
-      .then(function() {
-        return rimraf(self.destDir);
-      })
-      .then(function() {
-        symlinkOrCopy.sync(self.getCacheDir(), self.destDir);
-      })
-      .then(function() {
-        return self.destDir;
-      });
-  });
+      if (invalidateCache) {
+        var updateCacheSrcArg = self._singleMode ? inputPaths[0] : inputPaths;
+        updateCacheResult = self.updateCache(updateCacheSrcArg, self.getCleanCacheDir());
+
+        self._inputTreeCacheHash = inputTreeHashes;
+      }
+
+      return updateCacheResult;
+    })
+    .then(function() {
+      return rimraf(self.destDir);
+    })
+    .then(function() {
+      symlinkOrCopy.sync(self.getCacheDir(), self.destDir);
+    })
+    .then(function() {
+      return self.destDir;
+    });
 };
 
 CachingWriter.prototype.cleanup = function () {

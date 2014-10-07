@@ -14,6 +14,8 @@ var builder;
 
 describe('broccoli-caching-writer', function(){
   var sourcePath = 'tests/fixtures/sample-project';
+  var secondaryPath = 'tests/fixtures/other-tree';
+
   var existingJSFile = sourcePath + '/core.js';
   var dummyChangedFile = sourcePath + '/dummy-changed-file.txt';
   var dummyJSChangedFile = sourcePath + '/dummy-changed-file.js';
@@ -91,7 +93,7 @@ describe('broccoli-caching-writer', function(){
 
     it('calls updateCache again if input is changed', function(){
       var updateCacheCount = 0;
-      var tree = cachingWriter(sourcePath, {
+      var tree = cachingWriter([sourcePath, secondaryPath], {
         updateCache: function() {
           updateCacheCount++;
         }
@@ -110,6 +112,14 @@ describe('broccoli-caching-writer', function(){
         })
         .finally(function() {
           expect(updateCacheCount).to.eql(2);
+        })
+        .then(function() {
+          fs.writeFileSync(secondaryPath + '/foo-baz.js', 'bergh');
+
+          return buildInSeries(3);
+        })
+        .finally(function() {
+          expect(updateCacheCount).to.eql(3);
         });
     });
 
@@ -220,6 +230,24 @@ describe('broccoli-caching-writer', function(){
   });
 
   describe('updateCache', function() {
+    it('provides array of paths if array of sourceTrees was provided', function() {
+      var tree = cachingWriter([sourcePath, secondaryPath], {
+        updateCache: function(srcDirs, destDir) {
+          expect(fs.readFileSync(srcDirs[0] + '/core.js', {encoding: 'utf8'})).to.eql('"YIPPIE"\n');
+          expect(fs.readFileSync(srcDirs[1] + '/bar.js', {encoding: 'utf8'})).to.eql('"BLAMMO!"\n');
+
+          fs.writeFileSync(destDir + '/something-cool.js', 'zomg blammo', {encoding: 'utf8'});
+        }
+      });
+
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function(result) {
+        var dir = result.directory;
+
+        expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.eql('zomg blammo');
+      });
+    });
+
     it('can write files to destDir, and they will be in the final output', function(){
       var tree = cachingWriter(sourcePath, {
         updateCache: function(srcDir, destDir) {

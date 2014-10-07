@@ -10,9 +10,14 @@ If you would prefer to perform your plugins work in a non-synchronous way, simpl
 
 ## Documentation
 
-### `CachingWriter(inputTree, options)`
+### `CachingWriter(inputTrees, options)`
 
-----
+`inputTrees` *{Array of Trees | Single Tree}*
+
+Can either be a single tree, or an array of trees. If an array was specified, an array of source paths will be provided when
+calling `updateCache`.
+
+#### Options
 
 `filterFromCache.include` *{Array of RegExps}*
 
