@@ -14,7 +14,7 @@ function CachingWriter (inputTree, options) {
 
   this.inputTree = inputTree;
   this._shouldBeIgnoredCache = Object.create(null);
-  this.destDir = path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp');
+  this.destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
 
   options = options || {};
 
@@ -89,7 +89,8 @@ CachingWriter.prototype.read = function (readTree) {
 CachingWriter.prototype.cleanup = function () {
   quickTemp.remove(this, 'tmpCacheDir');
 
-  return rimraf(this.destDir);
+  // sadly we must use sync removal for now
+  rimraf.sync(this.destDir);
 };
 
 CachingWriter.prototype.updateCache = function (srcDir, destDir) {

@@ -20,10 +20,6 @@ describe('broccoli-caching-writer', function(){
   var dummyJSChangedFile = sourcePath + '/dummy-changed-file.js';
 
   afterEach(function() {
-    if (builder) {
-      builder.cleanup();
-    }
-
     if (fs.existsSync(dummyChangedFile)) {
       fs.unlinkSync(dummyChangedFile);
     }
@@ -33,7 +29,23 @@ describe('broccoli-caching-writer', function(){
     }
 
     fs.writeFileSync(existingJSFile, '"YIPPIE"\n');
+
+    if (builder) {
+      return builder.cleanup();
+    }
   });
+
+  function buildInSeries(count) {
+    var promise = RSVP.resolve();
+
+    for (var i = 0; i < count; i++) {
+      promise = promise.then(function() {
+        return builder.build();
+      });
+    }
+
+    return promise;
+  }
 
   describe('write', function() {
     it('calls updateCache when there is no cache', function(){
@@ -72,7 +84,7 @@ describe('broccoli-caching-writer', function(){
       });
 
       builder = new broccoli.Builder(tree);
-      return RSVP.all([builder.build(), builder.build(), builder.build()])
+      return buildInSeries(3)
         .then(function() {
           expect(updateCacheCount).to.eql(1);
         });
@@ -95,11 +107,7 @@ describe('broccoli-caching-writer', function(){
         .then(function() {
           fs.writeFileSync(dummyChangedFile, 'bergh');
 
-          return RSVP.all([
-              builder.build(),
-              builder.build(),
-              builder.build()
-            ])
+          return buildInSeries(3);
         })
         .finally(function() {
           expect(updateCacheCount).to.eql(2);
@@ -123,11 +131,7 @@ describe('broccoli-caching-writer', function(){
         .then(function() {
           fs.writeFileSync(existingJSFile, '"YIPPIE"\n"KI-YAY"\n');
 
-          return RSVP.all([
-              builder.build(),
-              builder.build(),
-              builder.build()
-            ])
+          return buildInSeries(3);
         })
         .finally(function() {
           expect(updateCacheCount).to.eql(2);
@@ -154,11 +158,7 @@ describe('broccoli-caching-writer', function(){
         .then(function() {
           fs.writeFileSync(dummyChangedFile, 'bergh');
 
-          return RSVP.all([
-              builder.build(),
-              builder.build(),
-              builder.build()
-            ]);
+          return buildInSeries(3);
         })
         .finally(function() {
           expect(updateCacheCount).to.eql(1);
@@ -185,11 +185,7 @@ describe('broccoli-caching-writer', function(){
         .then(function() {
           fs.writeFileSync(dummyChangedFile, 'bergh');
 
-          return RSVP.all([
-              builder.build(),
-              builder.build(),
-              builder.build()
-            ]);
+          return buildInSeries(3);
         })
         .finally(function() {
           expect(updateCacheCount).to.eql(1);
@@ -216,11 +212,7 @@ describe('broccoli-caching-writer', function(){
         .then(function() {
           fs.writeFileSync(dummyJSChangedFile, 'bergh');
 
-          return RSVP.all([
-              builder.build(),
-              builder.build(),
-              builder.build()
-            ]);
+          return buildInSeries(3);
         })
         .finally(function() {
           expect(updateCacheCount).to.eql(2);
