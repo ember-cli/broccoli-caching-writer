@@ -365,4 +365,36 @@ describe('broccoli-caching-writer', function(){
       expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
     });
   });
+
+  describe('extend', function() {
+    it('sets the methods correctly', function() {
+      var TestPlugin = cachingWriter.extend({
+        foo: function() {}
+      });
+
+      expect(TestPlugin).to.be.a(Function);
+      expect(TestPlugin.prototype.foo).to.be.a(Function);
+    });
+
+    it('calls CachingWriter constructor', function () {
+      var MyPlugin = cachingWriter.extend({});
+      var instance = new MyPlugin("foo");
+      expect(instance.inputTrees).to.eql(["foo"]);
+    });
+
+    it('can write files to destDir, and they will be in the final output', function(){
+      var TestWriter = cachingWriter.extend({
+        updateCache: function(srcDir, destDir) {
+          fs.writeFileSync(destDir + '/something-cooler.js', 'whoa', {encoding: 'utf8'});
+        }
+      });
+      var tree = new TestWriter(sourcePath);
+
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function(result) {
+        var dir = result.directory;
+        expect(fs.readFileSync(dir + '/something-cooler.js', {encoding: 'utf8'})).to.eql('whoa');
+      });
+    });
+  });
 });

@@ -7,6 +7,7 @@ var quickTemp = require('quick-temp')
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
 var generateRandomString = require('./lib/generate-random-string');
+var CoreObject = require("core-object");
 
 function CachingWriter (inputTrees, options) {
   if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
@@ -54,6 +55,7 @@ function CachingWriter (inputTrees, options) {
     throw new Error("Invalid filterFromCache.exclude option, it must be an array or undefined.")
   }
 };
+CachingWriter.__proto__ = CoreObject;
 CachingWriter.prototype.constructor = CachingWriter;
 
 CachingWriter.prototype.enforceSingleInputTree = false;
