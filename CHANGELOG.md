@@ -1,3 +1,28 @@
+## 0.5.1
+
+* Allow easy inheritance. In your package's `index.js`:
+
+```javascript
+var CachingWriter = require('broccoli-caching-writer');
+
+module.exports = CachingWriter.extend({
+  init: function(inputTrees, options) {
+    /* do additional setup here */
+  },
+
+  updateCache: function(srcPaths, destDir) {
+    /* do main processing */
+  }
+});
+```
+
+Then in a consuming Brocfile:
+
+```javascript
+var MyFoo = require('my-foo'); // package from above
+
+var tree = new MyFoo([someInput], { some: 'options' });
+```
 
 ## 0.5.0
 
