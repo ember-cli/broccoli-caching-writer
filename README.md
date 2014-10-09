@@ -54,6 +54,36 @@ and you wish to extend `broccoli-caching-writer` instead:
     - Code that looks like: `return readTree(this.inputTree).then(function (srcPaths) { /* Do the main processing */ });`
     - Simply extract the code, `/* Do the main processing */`, and get rid of the function wrapping it.
 
+## Inheritance
+
+broccoli-caching-writer inherits from [core-object](https://github.com/stefanpenner/core-object) to allow super simple
+inheritance. You can still absolutely use the standard prototypal inheritance, but as you can see below there may be no
+need.
+
+Make an `index.js` for your package:
+
+```javascript
+var CachingWriter = require('broccoli-caching-writer');
+
+module.exports = CachingWriter.extend({
+  init: function(inputTrees, options) {
+    /* do additional setup here */
+  },
+
+  updateCache: function(srcPaths, destDir) {
+    /* do main processing */
+  }
+});
+```
+
+Then in a consuming Brocfile:
+
+```javascript
+var MyFoo = require('my-foo'); // package from above
+
+var tree = new MyFoo([someInput], { some: 'options' });
+```
+
 
 ## ZOMG!!! TESTS?!?!!?
 
