@@ -7,7 +7,7 @@ var quickTemp = require('quick-temp')
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
 var generateRandomString = require('./lib/generate-random-string');
-var CoreObject = require("core-object");
+var CoreObject = require('core-object');
 
 function CachingWriter (inputTrees, options) {
   if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
@@ -48,11 +48,11 @@ function CachingWriter (inputTrees, options) {
   }
 
   if (!Array.isArray(this.filterFromCache.include)) {
-    throw new Error("Invalid filterFromCache.include option, it must be an array or undefined.")
+    throw new Error('Invalid filterFromCache.include option, it must be an array or undefined.')
   }
 
   if (!Array.isArray(this.filterFromCache.exclude)) {
-    throw new Error("Invalid filterFromCache.exclude option, it must be an array or undefined.")
+    throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.')
   }
 };
 CachingWriter.__proto__ = CoreObject;
@@ -158,7 +158,7 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
 
 
 CachingWriter.prototype.keysForTree = function (fullPath, initialRelativePath) {
-  var relativePath   = initialRelativePath || '.'
+  var relativePath = initialRelativePath || '.';
   var stats;
   var statKeys;
 
