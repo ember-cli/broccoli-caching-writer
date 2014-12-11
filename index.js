@@ -111,7 +111,9 @@ CachingWriter.prototype.cleanup = function () {
   quickTemp.remove(this, 'tmpCacheDir');
 
   // sadly we must use sync removal for now
-  rimraf.sync(this._destDir);
+  if (this._destDir) {
+    rimraf.sync(this._destDir);
+  }
 };
 
 CachingWriter.prototype.updateCache = function (srcDir, destDir) {
