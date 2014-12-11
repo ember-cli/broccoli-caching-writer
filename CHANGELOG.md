@@ -1,3 +1,12 @@
+## 0.5.3
+
+* Ensure that errors are not thrown if `_destDir` has not been setup yet.
+
+## 0.5.2
+
+* Use `_destDir` for tracking the internal destination directory. This prevents collisions if inheritors use the common `destDir`
+  name as a property.
+
 ## 0.5.1
 
 * Allow easy inheritance. In your package's `index.js`:
