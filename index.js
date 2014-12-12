@@ -3,14 +3,16 @@ var path = require('path');
 var RSVP = require('rsvp');
 var rimraf = RSVP.denodeify(require('rimraf'));
 var mapSeries = require('promise-map-series');
-var quickTemp = require('quick-temp')
+var quickTemp = require('quick-temp');
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
 var generateRandomString = require('./lib/generate-random-string');
+var assign = require('lodash-node/modern/objects/assign');
 var CoreObject = require('core-object');
 
-function CachingWriter (inputTrees, options) {
-  if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
+var proto = {};
+
+proto.init = function(inputTrees, options) {
 
   this._inputTreeCacheHash = [];
   this._shouldBeIgnoredCache = Object.create(null);
@@ -48,27 +50,25 @@ function CachingWriter (inputTrees, options) {
   }
 
   if (!Array.isArray(this.filterFromCache.include)) {
-    throw new Error('Invalid filterFromCache.include option, it must be an array or undefined.')
+    throw new Error('Invalid filterFromCache.include option, it must be an array or undefined.');
   }
 
   if (!Array.isArray(this.filterFromCache.exclude)) {
-    throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.')
+    throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.');
   }
 };
-CachingWriter.__proto__ = CoreObject;
-CachingWriter.prototype.constructor = CachingWriter;
 
-CachingWriter.prototype.enforceSingleInputTree = false;
+proto.enforceSingleInputTree = false;
 
-CachingWriter.prototype.getCacheDir = function () {
+proto.getCacheDir = function () {
   return quickTemp.makeOrReuse(this, 'tmpCacheDir');
 };
 
-CachingWriter.prototype.getCleanCacheDir = function () {
+proto.getCleanCacheDir = function () {
   return quickTemp.makeOrRemake(this, 'tmpCacheDir');
 };
 
-CachingWriter.prototype.read = function (readTree) {
+proto.read = function (readTree) {
   var self = this;
 
   return mapSeries(this.inputTrees, readTree)
@@ -107,7 +107,7 @@ CachingWriter.prototype.read = function (readTree) {
     });
 };
 
-CachingWriter.prototype.cleanup = function () {
+proto.cleanup = function () {
   quickTemp.remove(this, 'tmpCacheDir');
 
   // sadly we must use sync removal for now
@@ -116,14 +116,14 @@ CachingWriter.prototype.cleanup = function () {
   }
 };
 
-CachingWriter.prototype.updateCache = function (srcDir, destDir) {
+proto.updateCache = function (srcDir, destDir) {
   throw new Error('You must implement updateCache.');
 };
 
 // Takes in a path and { include, exclude }. Tests the path using regular expressions and
 // returns true if the path does not match any exclude patterns AND matches atleast
 // one include pattern.
-CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
+proto.shouldBeIgnored = function (fullPath) {
   if (this._shouldBeIgnoredCache[fullPath] !== undefined) {
     return this._shouldBeIgnoredCache[fullPath];
   }
@@ -136,7 +136,7 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
   for (i = 0; i < excludePatterns.length; i++) {
     // An exclude pattern that returns true should be ignored
     if (excludePatterns[i].test(fullPath) === true) {
-      return this._shouldBeIgnoredCache[fullPath] = true;
+      return (this._shouldBeIgnoredCache[fullPath] = true);
     }
   }
 
@@ -146,20 +146,20 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
       // An include pattern that returns true (and wasn't excluded at all)
       // should _not_ be ignored
       if (includePatterns[i].test(fullPath) === true) {
-        return this._shouldBeIgnoredCache[fullPath] = false;
+        return (this._shouldBeIgnoredCache[fullPath] = false);
       }
     }
 
     // If no include patterns were matched, ignore this file.
-    return this._shouldBeIgnoredCache[fullPath] = true;
+    return (this._shouldBeIgnoredCache[fullPath] = true);
   }
 
   // Otherwise, don't ignore this file
-  return this._shouldBeIgnoredCache[fullPath] = false;
-}
+  return (this._shouldBeIgnoredCache[fullPath] = false);
+};
 
 
-CachingWriter.prototype.keysForTree = function (fullPath, initialRelativePath) {
+proto.keysForTree = function (fullPath, initialRelativePath) {
   var relativePath = initialRelativePath || '.';
   var stats;
   var statKeys;
@@ -188,7 +188,7 @@ CachingWriter.prototype.keysForTree = function (fullPath, initialRelativePath) {
       childKeys = ['readdir failed'];
       // That's all there is to say about this directory.
     }
-    if (entries != null) {
+    if (entries) {
       for (var i = 0; i < entries.length; i++) {
 
         var keys = this.keysForTree(
@@ -209,6 +209,18 @@ CachingWriter.prototype.keysForTree = function (fullPath, initialRelativePath) {
   return ['path', relativePath]
     .concat(statKeys)
     .concat(childKeys);
+};
+
+function CachingWriter (inputTrees, options) {
+  if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
+  CoreObject.apply(this, arguments);
+  if (this.init) {
+    this.init.apply(this, arguments);
+  }
 }
+
+CachingWriter.__proto__ = CoreObject;
+CachingWriter.prototype = Object.create(CoreObject.prototype);
+assign(CachingWriter.prototype, proto);
 
 module.exports = CachingWriter;
