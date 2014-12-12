@@ -1,3 +1,7 @@
+## 0.5.4
+
+* Update to newer core-object version.
+
 ## 0.5.3
 
 * Ensure that errors are not thrown if `_destDir` has not been setup yet.
