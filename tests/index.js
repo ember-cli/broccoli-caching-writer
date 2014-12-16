@@ -396,5 +396,22 @@ describe('broccoli-caching-writer', function(){
         expect(fs.readFileSync(dir + '/something-cooler.js', {encoding: 'utf8'})).to.eql('whoa');
       });
     });
+
+    it("calls user's init", function() {
+      var TestPlugin = cachingWriter.extend({
+        init: function(){
+          this.ownInitRan = true;
+        }
+      });
+      var tree = new TestPlugin(sourcePath, {someOption: 42});
+      expect(tree.ownInitRan).to.eql(true);
+    });
+
+    it("calls own constructor", function() {
+      var TestPlugin = cachingWriter.extend();
+      var tree = new TestPlugin(sourcePath, {someOption: 42});
+      expect(tree.someOption).to.eql(42);
+    });
+
   });
 });

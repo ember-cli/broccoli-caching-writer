@@ -10,9 +10,9 @@ var generateRandomString = require('./lib/generate-random-string');
 var assign = require('lodash-node/modern/objects/assign');
 var CoreObject = require('core-object');
 
-var proto = {};
-
-proto.init = function(inputTrees, options) {
+function CachingWriter(inputTrees, options) {
+  if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
+  CoreObject.apply(this, arguments);
 
   this._inputTreeCacheHash = [];
   this._shouldBeIgnoredCache = Object.create(null);
@@ -56,8 +56,10 @@ proto.init = function(inputTrees, options) {
   if (!Array.isArray(this.filterFromCache.exclude)) {
     throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.');
   }
+
 };
 
+var proto = {};
 proto.enforceSingleInputTree = false;
 
 proto.getCacheDir = function () {
@@ -210,14 +212,6 @@ proto.keysForTree = function (fullPath, initialRelativePath) {
     .concat(statKeys)
     .concat(childKeys);
 };
-
-function CachingWriter (inputTrees, options) {
-  if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
-  CoreObject.apply(this, arguments);
-  if (this.init) {
-    this.init.apply(this, arguments);
-  }
-}
 
 CachingWriter.__proto__ = CoreObject;
 CachingWriter.prototype = Object.create(CoreObject.prototype);
