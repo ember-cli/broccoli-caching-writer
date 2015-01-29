@@ -62,35 +62,34 @@ proto.rebuild = function () {
   var inputPaths = this.inputTrees.map(function (inputTree) {
     return inputTree.directory;
   });
+  var inputTreeHashes = [];
+  var invalidateCache = false;
+  var keys, dir, updateCacheResult;
 
-      var inputTreeHashes = [];
-      var invalidateCache = false;
-      var keys, dir, updateCacheResult;
+  for (var i = 0, l = inputPaths.length; i < l; i++) {
+    dir = inputPaths[i];
+    keys = self.keysForTree(dir);
+    inputTreeHashes[i] = helpers.hashStrings(keys);
 
-      for (var i = 0, l = inputPaths.length; i < l; i++) {
-        dir = inputPaths[i];
-        keys = self.keysForTree(dir);
-        inputTreeHashes[i] = helpers.hashStrings(keys);
+    if (self._inputTreeCacheHash[i] !== inputTreeHashes[i]) {
+      invalidateCache = true;
+    }
+  }
 
-        if (self._inputTreeCacheHash[i] !== inputTreeHashes[i]) {
-          invalidateCache = true;
-        }
-      }
-
-      if (invalidateCache) {
-        var updateCacheSrcArg = self.enforceSingleInputTree ? inputPaths[0] : inputPaths;
-        updateCacheResult = rimraf(this.cache).then(function () {
-          fs.mkdirSync(self.cache);
-          return self.updateCache(updateCacheSrcArg, self.cache);
-        });
-
-        self._inputTreeCacheHash = inputTreeHashes;
-      }
-
-    return RSVP.resolve(updateCacheResult).then(function() {
-      fs.rmdirSync(self.directory);
-      symlinkOrCopy.sync(self.cache, self.directory);
+  if (invalidateCache) {
+    var updateCacheSrcArg = self.enforceSingleInputTree ? inputPaths[0] : inputPaths;
+    updateCacheResult = rimraf(this.cache).then(function () {
+      fs.mkdirSync(self.cache);
+      return self.updateCache(updateCacheSrcArg, self.cache);
     });
+
+    self._inputTreeCacheHash = inputTreeHashes;
+  }
+
+  return RSVP.resolve(updateCacheResult).then(function() {
+    fs.rmdirSync(self.directory);
+    symlinkOrCopy.sync(self.cache, self.directory);
+  });
 };
 
 proto.updateCache = function (srcDir, destDir) {
