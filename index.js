@@ -2,11 +2,8 @@ var fs = require('fs');
 var path = require('path');
 var RSVP = require('rsvp');
 var rimraf = RSVP.denodeify(require('rimraf'));
-var mapSeries = require('promise-map-series');
-var quickTemp = require('quick-temp');
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
-var generateRandomString = require('./lib/generate-random-string');
 var assign = require('lodash-node/modern/objects/assign');
 var CoreObject = require('core-object');
 
@@ -16,7 +13,6 @@ proto.init = function(inputTrees, options) {
 
   this._inputTreeCacheHash = [];
   this._shouldBeIgnoredCache = Object.create(null);
-  this._destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
 
   options = options || {};
 
@@ -60,19 +56,13 @@ proto.init = function(inputTrees, options) {
 
 proto.enforceSingleInputTree = false;
 
-proto.getCacheDir = function () {
-  return quickTemp.makeOrReuse(this, 'tmpCacheDir');
-};
-
-proto.getCleanCacheDir = function () {
-  return quickTemp.makeOrRemake(this, 'tmpCacheDir');
-};
-
-proto.read = function (readTree) {
+proto.rebuild = function () {
   var self = this;
 
-  return mapSeries(this.inputTrees, readTree)
-    .then(function(inputPaths) {
+  var inputPaths = this.inputTrees.map(function (inputTree) {
+    return inputTree.directory;
+  });
+
       var inputTreeHashes = [];
       var invalidateCache = false;
       var keys, dir, updateCacheResult;
@@ -89,31 +79,18 @@ proto.read = function (readTree) {
 
       if (invalidateCache) {
         var updateCacheSrcArg = self.enforceSingleInputTree ? inputPaths[0] : inputPaths;
-        updateCacheResult = self.updateCache(updateCacheSrcArg, self.getCleanCacheDir());
+        updateCacheResult = rimraf(this.cache).then(function () {
+          fs.mkdirSync(self.cache);
+          return self.updateCache(updateCacheSrcArg, self.cache);
+        });
 
         self._inputTreeCacheHash = inputTreeHashes;
       }
 
-      return updateCacheResult;
-    })
-    .then(function() {
-      return rimraf(self._destDir);
-    })
-    .then(function() {
-      symlinkOrCopy.sync(self.getCacheDir(), self._destDir);
-    })
-    .then(function() {
-      return self._destDir;
+    return RSVP.resolve(updateCacheResult).then(function() {
+      fs.rmdirSync(self.directory);
+      symlinkOrCopy.sync(self.cache, self.directory);
     });
-};
-
-proto.cleanup = function () {
-  quickTemp.remove(this, 'tmpCacheDir');
-
-  // sadly we must use sync removal for now
-  if (this._destDir) {
-    rimraf.sync(this._destDir);
-  }
 };
 
 proto.updateCache = function (srcDir, destDir) {
