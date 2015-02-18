@@ -1,3 +1,6 @@
+/* jshint node: true */
+/* global it: true, describe: true, afterEach, beforeEach */
+
 'use strict';
 
 var fs = require('fs');
@@ -7,7 +10,6 @@ var RSVP = require('rsvp');
 var rimraf = require('rimraf');
 var root = process.cwd();
 var broccoli = require('broccoli');
-
 var cachingWriter = require('..');
 
 var builder;
@@ -29,20 +31,20 @@ describe('broccoli-caching-writer', function(){
       fs.unlinkSync(dummyJSChangedFile);
     }
 
-    fs.writeFileSync(existingJSFile, '"YIPPIE"\n');
-
     if (builder) {
       return builder.cleanup();
     }
   });
 
+  function build() {
+    return builder.build();
+  }
+
   function buildInSeries(count) {
-    var promise = RSVP.resolve();
+    var promise = RSVP.Promise.resolve();
 
     for (var i = 0; i < count; i++) {
-      promise = promise.then(function() {
-        return builder.build();
-      });
+      promise = promise.then(build);
     }
 
     return promise;
@@ -93,7 +95,7 @@ describe('broccoli-caching-writer', function(){
       });
 
       builder = new broccoli.Builder(tree);
-      return builder.build()
+      return builder.build();
     });
 
     it('is provided a source and destination directory', function(){
@@ -106,7 +108,7 @@ describe('broccoli-caching-writer', function(){
       });
 
       builder = new broccoli.Builder(tree);
-      return builder.build()
+      return builder.build();
     });
 
     it('only calls updateCache once if input is not changing', function(){
@@ -118,14 +120,16 @@ describe('broccoli-caching-writer', function(){
       });
 
       builder = new broccoli.Builder(tree);
+
       return buildInSeries(3)
         .then(function() {
-          expect(updateCacheCount).to.eql(1);
+          expect(updateCacheCount).to.equal(1);
         });
     });
 
     it('calls updateCache again if input is changed', function(){
       var updateCacheCount = 0;
+
       var tree = cachingWriter([sourcePath, secondaryPath], {
         updateCache: function() {
           updateCacheCount++;
@@ -136,7 +140,7 @@ describe('broccoli-caching-writer', function(){
 
       return builder.build()
         .finally(function() {
-          expect(updateCacheCount).to.eql(1);
+          expect(updateCacheCount).to.equal(1);
         })
         .then(function() {
           fs.writeFileSync(dummyChangedFile, 'bergh');
@@ -144,7 +148,7 @@ describe('broccoli-caching-writer', function(){
           return buildInSeries(3);
         })
         .finally(function() {
-          expect(updateCacheCount).to.eql(2);
+          expect(updateCacheCount).to.equal(2);
         })
         .then(function() {
           fs.writeFileSync(secondaryPath + '/foo-baz.js', 'bergh');
@@ -152,7 +156,7 @@ describe('broccoli-caching-writer', function(){
           return buildInSeries(3);
         })
         .finally(function() {
-          expect(updateCacheCount).to.eql(3);
+          expect(updateCacheCount).to.equal(3);
         });
     });
 
@@ -168,15 +172,16 @@ describe('broccoli-caching-writer', function(){
 
       return builder.build()
         .finally(function() {
-          expect(updateCacheCount).to.eql(1);
+          expect(updateCacheCount).to.equal(1);
         })
         .then(function() {
-          fs.writeFileSync(existingJSFile, '"YIPPIE"\n"KI-YAY"\n');
+          fs.writeFileSync(existingJSFile, '"YIPPIE"\n"KI-YAY!"\n');
 
           return buildInSeries(3);
         })
         .finally(function() {
-          expect(updateCacheCount).to.eql(2);
+          fs.writeFileSync(existingJSFile, '"YIPPIE"\n');
+          expect(updateCacheCount).to.equal(2);
         });
     });
 
@@ -195,7 +200,7 @@ describe('broccoli-caching-writer', function(){
 
       return builder.build()
         .finally(function() {
-          expect(updateCacheCount).to.eql(1);
+          expect(updateCacheCount).to.equal(1);
         })
         .then(function() {
           fs.writeFileSync(dummyChangedFile, 'bergh');
@@ -203,7 +208,7 @@ describe('broccoli-caching-writer', function(){
           return buildInSeries(3);
         })
         .finally(function() {
-          expect(updateCacheCount).to.eql(1);
+          expect(updateCacheCount).to.equal(1);
         });
     });
 
@@ -222,7 +227,7 @@ describe('broccoli-caching-writer', function(){
 
       return builder.build()
         .finally(function() {
-          expect(updateCacheCount).to.eql(1);
+          expect(updateCacheCount).to.equal(1);
         })
         .then(function() {
           fs.writeFileSync(dummyChangedFile, 'bergh');
@@ -230,7 +235,7 @@ describe('broccoli-caching-writer', function(){
           return buildInSeries(3);
         })
         .finally(function() {
-          expect(updateCacheCount).to.eql(1);
+          expect(updateCacheCount).to.equal(1);
         });
     });
 
@@ -249,7 +254,7 @@ describe('broccoli-caching-writer', function(){
 
       return builder.build()
         .finally(function() {
-          expect(updateCacheCount).to.eql(1);
+          expect(updateCacheCount).to.equal(1);
         })
         .then(function() {
           fs.writeFileSync(dummyJSChangedFile, 'bergh');
@@ -257,7 +262,7 @@ describe('broccoli-caching-writer', function(){
           return buildInSeries(3);
         })
         .finally(function() {
-          expect(updateCacheCount).to.eql(2);
+          expect(updateCacheCount).to.equal(2);
         });
     });
   });
@@ -277,7 +282,7 @@ describe('broccoli-caching-writer', function(){
       return builder.build().then(function(result) {
         var dir = result.directory;
 
-        expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.eql('zomg blammo');
+        expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.equal('zomg blammo');
       });
     });
 
@@ -291,7 +296,7 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
       return builder.build().then(function(result) {
         var dir = result.directory;
-        expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.eql('zomg blammo');
+        expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.equal('zomg blammo');
       });
     });
 
@@ -301,7 +306,7 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
       return builder.build()
         .catch(function(reason) {
-          expect(reason.message).to.eql('You must implement updateCache.');
+          expect(reason.message).to.equal('You must implement updateCache.');
         });
     });
 
@@ -393,7 +398,7 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
       return builder.build().then(function(result) {
         var dir = result.directory;
-        expect(fs.readFileSync(dir + '/something-cooler.js', {encoding: 'utf8'})).to.eql('whoa');
+        expect(fs.readFileSync(dir + '/something-cooler.js', {encoding: 'utf8'})).to.equal('whoa');
       });
     });
   });
