@@ -19,13 +19,13 @@
   ],
   "dependencies": {
     "broccoli-kitchen-sink-helpers": "^0.2.5",
-    "core-object": "0.0.3",
+    "core-object": "1.0.0",
     "debug": "^2.1.1",
-    "lodash-node": "^2.4.1",
+    "lodash-node": "^3.2.0",
     "promise-map-series": "^0.2.0",
     "quick-temp": "^0.1.2",
     "rimraf": "^2.2.8",
-    "rsvp": "^3.0.14",
+    "rsvp": "^3.0.17",
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {

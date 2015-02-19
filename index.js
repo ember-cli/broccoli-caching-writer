@@ -7,7 +7,7 @@ var quickTemp = require('quick-temp');
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
 var generateRandomString = require('./lib/generate-random-string');
-var assign = require('lodash-node/modern/objects/assign');
+var assign = require('lodash-node/modern/object/assign');
 var CoreObject = require('core-object');
 var debugGenerator = require('debug');
 
