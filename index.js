@@ -9,7 +9,7 @@ var symlinkOrCopy = require('symlink-or-copy');
 var generateRandomString = require('./lib/generate-random-string');
 var assign = require('lodash-node/modern/objects/assign');
 var CoreObject = require('core-object');
-var debug = require('debug')('broccoli-caching-writer');
+var debugGenerator = require('debug');
 
 var proto = {};
 
@@ -18,6 +18,8 @@ proto.init = function(inputTrees, options) {
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this._destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
+
+  this.debug = debugGenerator('broccoli-caching-writer:' + (this.description || this.constructor.name));
 
   options = options || {};
 
@@ -165,12 +167,13 @@ proto.shouldBeIgnored = function (fullPath) {
 };
 
 var EMPTY_ARRAY;
-function Key(type, fullPath, path, stat, children) {
+function Key(type, fullPath, path, stat, children, debug) {
   this.type = type;
   this.fullPath = fullPath;
   this.path = path;
   this.stat = stat;
   this.children = children || EMPTY_ARRAY;
+  this.debug = debug;
 }
 
 Key.prototype.toString = function() {
@@ -194,7 +197,7 @@ Key.prototype.inspect = function() {
 };
 
 function logNotEqual(previous, next) {
-  debug(" cache eviction due to: \n     - {%o} \n     - {%o}", previous, next);
+  previous.debug(" cache eviction due to: \n     - {%o} \n     - {%o}", previous, next);
 }
 
 Key.prototype.equal = function(otherKey) {
@@ -277,7 +280,7 @@ proto.keyForTree = function (fullPath, initialRelativePath) {
     }
   }
 
-  return new Key(type, fullPath, relativePath, stats, children);
+  return new Key(type, fullPath, relativePath, stats, children, this.debug);
 };
 
 function CachingWriter (inputTrees, options) {
