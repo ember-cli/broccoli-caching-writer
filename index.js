@@ -9,12 +9,13 @@ var symlinkOrCopy = require('symlink-or-copy');
 var generateRandomString = require('./lib/generate-random-string');
 var assign = require('lodash-node/modern/objects/assign');
 var CoreObject = require('core-object');
+var debug = require('debug')('broccoli-caching-writer');
 
 var proto = {};
 
 proto.init = function(inputTrees, options) {
-
   this._inputTreeCacheHash = [];
+  this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this._destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
 
@@ -75,14 +76,17 @@ proto.read = function (readTree) {
     .then(function(inputPaths) {
       var inputTreeHashes = [];
       var invalidateCache = false;
-      var keys, dir, updateCacheResult;
+      var key, dir, updateCacheResult;
+      var lastKeys = [];
 
       for (var i = 0, l = inputPaths.length; i < l; i++) {
         dir = inputPaths[i];
-        keys = self.keysForTree(dir);
-        inputTreeHashes[i] = helpers.hashStrings(keys);
 
-        if (self._inputTreeCacheHash[i] !== inputTreeHashes[i]) {
+        key = self.keyForTree(dir);
+        lastKey = self._lastKeys[i];
+        lastKeys.push(key);
+
+        if (!invalidateCache /* short circuit */ && !key.equal(lastKey)) {
           invalidateCache = true;
         }
       }
@@ -90,6 +94,8 @@ proto.read = function (readTree) {
       if (invalidateCache) {
         var updateCacheSrcArg = self.enforceSingleInputTree ? inputPaths[0] : inputPaths;
         updateCacheResult = self.updateCache(updateCacheSrcArg, self.getCleanCacheDir());
+
+        self._lastKeys = lastKeys;
 
         self._inputTreeCacheHash = inputTreeHashes;
       }
@@ -158,11 +164,79 @@ proto.shouldBeIgnored = function (fullPath) {
   return (this._shouldBeIgnoredCache[fullPath] = false);
 };
 
+var EMPTY_ARRAY;
+function Key(type, fullPath, path, stat, children) {
+  this.type = type;
+  this.fullPath = fullPath;
+  this.path = path;
+  this.stat = stat;
+  this.children = children || EMPTY_ARRAY;
+}
 
-proto.keysForTree = function (fullPath, initialRelativePath) {
+Key.prototype.toString = function() {
+  return ' type: '       + this.type +
+         ' fullPath: '   + this.fullPath +
+         ' path: '       + this.path +
+         ' stat.mode: '  + this.stat.mode +
+         ' stat.size: '  + this.stat.size +
+         ' stat.mtime: ' + this.stat.mtime.getTime();
+};
+
+Key.prototype.inspect = function() {
+  return [
+    this.type,
+    this.path,
+    this.stat.mode,
+    this.stat.size,
+    this.stat.size,
+    this.stat.mtime.getTime()
+  ].join(', ');
+};
+
+function logNotEqual(previous, next) {
+  debug(" cache eviction due to: \n     - {%o} \n     - {%o}", previous, next);
+}
+
+Key.prototype.equal = function(otherKey) {
+  if (otherKey === undefined) {
+    logNotEqual(this, otherKey);
+    return false;
+  }
+
+  if (this.type === otherKey.type && this.type === 'directory') {
+    var children = this.children;
+    var otherChildren = otherKey.children;
+
+    if (children.length === otherChildren.length) {
+      for (var i = 0; i < children.length; i++) {
+        if (children[i].equal(otherChildren[i])) {
+          // they are the same
+        } else {
+          return false;
+        }
+      }
+    } else {
+      return false;
+    }
+  }
+
+  // key represents a file, diff the file
+  if (this.type       === otherKey.type &&
+      this.path       === otherKey.path &&
+      this.stat.mode  === otherKey.stat.mode &&
+      this.stat.size  === otherKey.stat.size &&
+      this.type === 'directory' ? true : this.stat.mtime.getTime() === otherKey.stat.mtime.getTime()) {
+    return true;
+  } else {
+    logNotEqual(this, otherKey);
+  }
+};
+
+proto.keyForTree = function (fullPath, initialRelativePath) {
   var relativePath = initialRelativePath || '.';
   var stats;
   var statKeys;
+  var type;
 
   try {
     stats = fs.statSync(fullPath);
@@ -171,44 +245,39 @@ proto.keysForTree = function (fullPath, initialRelativePath) {
     // fullPath has probably ceased to exist. Leave `stats` undefined and
     // proceed hashing.
   }
-  var childKeys = [];
-  if (stats) {
-    statKeys = ['stats', stats.mode];
-  } else {
-    statKeys = ['stat failed'];
-  }
+
+  var children;
+
+  // has children;
   if (stats && stats.isDirectory()) {
-    var fileIdentity = stats.dev + '\x00' + stats.ino;
-    var entries;
+    type = 'directory';
+
+    var files;
     try {
-      entries = fs.readdirSync(fullPath).sort();
+      files = fs.readdirSync(fullPath).sort();
     } catch (err) {
       console.warn('Warning: Failed to read directory ' + fullPath);
       console.warn(err.stack);
-      childKeys = ['readdir failed'];
-      // That's all there is to say about this directory.
     }
-    if (entries) {
-      for (var i = 0; i < entries.length; i++) {
 
-        var keys = this.keysForTree(
-          path.join(fullPath, entries[i]),
-          path.join(relativePath, entries[i])
+    if (files) {
+      children = files.map(function(file) {
+        return this.keyForTree(
+          path.join(fullPath, file),
+          path.join(relativePath, file)
         );
-        childKeys = childKeys.concat(keys);
-      }
+      }, this).filter(Boolean);
     }
+
   } else if (stats && stats.isFile()) {
+    type = 'file';
+
     if (this.shouldBeIgnored(fullPath)) {
-      return [];
+      return null;
     }
-    statKeys.push(stats.mtime.getTime(), stats.size);
   }
 
-  // Perhaps we should not use basename to infer the file name
-  return ['path', relativePath]
-    .concat(statKeys)
-    .concat(childKeys);
+  return new Key(type, fullPath, relativePath, stats, children);
 };
 
 function CachingWriter (inputTrees, options) {
