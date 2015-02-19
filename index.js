@@ -75,7 +75,7 @@ CachingWriter.getCleanCacheDir = function () {
 };
 
 CachingWriter.read = function (readTree) {
-  var self = this;
+  var writer = this;
 
   return mapSeries(this.inputTrees, readTree)
     .then(function(inputPaths) {
@@ -87,8 +87,8 @@ CachingWriter.read = function (readTree) {
       for (var i = 0, l = inputPaths.length; i < l; i++) {
         dir = inputPaths[i];
 
-        key = self.keyForTree(dir);
-        lastKey = self._lastKeys[i];
+        key = writer.keyForTree(dir);
+        lastKey = writer._lastKeys[i];
         lastKeys.push(key);
 
         if (!invalidateCache /* short circuit */ && !key.equal(lastKey)) {
@@ -97,22 +97,22 @@ CachingWriter.read = function (readTree) {
       }
 
       if (invalidateCache) {
-        var updateCacheSrcArg = self.enforceSingleInputTree ? inputPaths[0] : inputPaths;
-        updateCacheResult = self.updateCache(updateCacheSrcArg, self.getCleanCacheDir());
+        var updateCacheSrcArg = writer.enforceSingleInputTree ? inputPaths[0] : inputPaths;
+        updateCacheResult = writer.updateCache(updateCacheSrcArg, writer.getCleanCacheDir());
 
-        self._lastKeys = lastKeys;
+        writer._lastKeys = lastKeys;
       }
 
       return updateCacheResult;
     })
     .then(function() {
-      return rimraf(self._destDir);
+      return rimraf(writer._destDir);
     })
     .then(function() {
-      symlinkOrCopy.sync(self.getCacheDir(), self._destDir);
+      symlinkOrCopy.sync(writer.getCacheDir(), writer._destDir);
     })
     .then(function() {
-      return self._destDir;
+      return writer._destDir;
     });
 };
 
