@@ -29,6 +29,10 @@ CachingWriter.init = function(inputTrees, _options) {
     }
   }
 
+  if (!inputTrees) {
+    throw new Error('no inputTree was provided');
+  }
+
   if (Array.isArray(inputTrees)) {
     if (this.enforceSingleInputTree) {
       throw new Error('You passed an array of input trees, but only a single tree is allowed.');
