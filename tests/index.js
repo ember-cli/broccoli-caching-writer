@@ -10,7 +10,7 @@ var RSVP = require('rsvp');
 var rimraf = require('rimraf');
 var root = process.cwd();
 var broccoli = require('broccoli');
-var cachingWriter = require('..');
+var CachingWriter = require('..');
 
 var builder;
 
@@ -52,7 +52,7 @@ describe('broccoli-caching-writer', function(){
 
   describe('enforceSingleInputTree', function() {
     it('defaults `enforceSingleInputTree` to false', function() {
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function() { }
       });
 
@@ -61,7 +61,7 @@ describe('broccoli-caching-writer', function(){
 
     it('throws an error if enforceSingleInputTree is true, and an array is passed', function() {
       expect(function() {
-        var tree = cachingWriter([sourcePath, secondaryPath], {
+        var tree = new CachingWriter([sourcePath, secondaryPath], {
           enforceSingleInputTree: true,
           updateCache: function() { }
         });
@@ -72,13 +72,14 @@ describe('broccoli-caching-writer', function(){
   describe('write', function() {
     it('calls updateCache when there is no cache', function(){
       var updateCacheCalled = false;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function() {
           updateCacheCalled = true;
         }
       });
 
       builder = new broccoli.Builder(tree);
+
       return builder.build().finally(function() {
         expect(updateCacheCalled).to.be.ok();
       });
@@ -86,7 +87,7 @@ describe('broccoli-caching-writer', function(){
 
     it('calls updateCache with a single path if enforceSingleInputTree is true', function(){
       var updateCacheCalled = false;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         enforceSingleInputTree: true,
         updateCache: function(srcDir, destDir) {
           expect(fs.statSync(srcDir).isDirectory()).to.be.ok();
@@ -100,7 +101,7 @@ describe('broccoli-caching-writer', function(){
 
     it('is provided a source and destination directory', function(){
       var updateCacheCalled = false;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function(srcDir, destDir) {
           expect(fs.statSync(srcDir[0]).isDirectory()).to.be.ok();
           expect(fs.statSync(destDir).isDirectory()).to.be.ok();
@@ -113,7 +114,7 @@ describe('broccoli-caching-writer', function(){
 
     it('only calls updateCache once if input is not changing', function(){
       var updateCacheCount = 0;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function() {
           updateCacheCount++;
         }
@@ -130,7 +131,7 @@ describe('broccoli-caching-writer', function(){
     it('calls updateCache again if input is changed', function(){
       var updateCacheCount = 0;
 
-      var tree = cachingWriter([sourcePath, secondaryPath], {
+      var tree = new CachingWriter([sourcePath, secondaryPath], {
         updateCache: function() {
           updateCacheCount++;
         }
@@ -162,7 +163,7 @@ describe('broccoli-caching-writer', function(){
 
     it('calls updateCache again if existing file is changed', function(){
       var updateCacheCount = 0;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function() {
           updateCacheCount++;
         }
@@ -187,7 +188,7 @@ describe('broccoli-caching-writer', function(){
 
     it('does not call updateCache again if input is changed but filtered from cache (via exclude)', function(){
       var updateCacheCount = 0;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function() {
           updateCacheCount++;
         },
@@ -214,7 +215,7 @@ describe('broccoli-caching-writer', function(){
 
     it('does not call updateCache again if input is changed but filtered from cache (via include)', function(){
       var updateCacheCount = 0;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function() {
           updateCacheCount++;
         },
@@ -241,7 +242,7 @@ describe('broccoli-caching-writer', function(){
 
     it('does call updateCache again if input is changed is included in the cache filter', function(){
       var updateCacheCount = 0;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function() {
           updateCacheCount++;
         },
@@ -269,7 +270,7 @@ describe('broccoli-caching-writer', function(){
 
   describe('updateCache', function() {
     it('provides array of paths if array of sourceTrees was provided', function() {
-      var tree = cachingWriter([sourcePath, secondaryPath], {
+      var tree = new CachingWriter([sourcePath, secondaryPath], {
         updateCache: function(srcDirs, destDir) {
           expect(fs.readFileSync(srcDirs[0] + '/core.js', {encoding: 'utf8'})).to.eql('"YIPPIE"\n');
           expect(fs.readFileSync(srcDirs[1] + '/bar.js', {encoding: 'utf8'})).to.eql('"BLAMMO!"\n');
@@ -287,7 +288,7 @@ describe('broccoli-caching-writer', function(){
     });
 
     it('can write files to destDir, and they will be in the final output', function(){
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function(srcDir, destDir) {
           fs.writeFileSync(destDir + '/something-cool.js', 'zomg blammo', {encoding: 'utf8'});
         }
@@ -301,7 +302,7 @@ describe('broccoli-caching-writer', function(){
     });
 
     it('throws an error if not overriden', function(){
-      var tree = cachingWriter(sourcePath);
+      var tree = new CachingWriter(sourcePath);
 
       builder = new broccoli.Builder(tree);
       return builder.build()
@@ -312,7 +313,7 @@ describe('broccoli-caching-writer', function(){
 
     it('can return a promise that is resolved', function(){
       var thenCalled = false;
-      var tree = cachingWriter(sourcePath, {
+      var tree = new CachingWriter(sourcePath, {
         updateCache: function(srcDir, destDir) {
           return {then: function(callback) {
             thenCalled = true;
@@ -332,7 +333,7 @@ describe('broccoli-caching-writer', function(){
     var tree;
 
     beforeEach(function() {
-      tree = cachingWriter(sourcePath);
+      tree = new CachingWriter(sourcePath);
     });
 
     it('returns true if the path is included in an exclude filter', function() {
@@ -373,7 +374,7 @@ describe('broccoli-caching-writer', function(){
 
   describe('extend', function() {
     it('sets the methods correctly', function() {
-      var TestPlugin = cachingWriter.extend({
+      var TestPlugin = CachingWriter.extend({
         foo: function() {}
       });
 
@@ -382,13 +383,13 @@ describe('broccoli-caching-writer', function(){
     });
 
     it('calls CachingWriter constructor', function () {
-      var MyPlugin = cachingWriter.extend({});
+      var MyPlugin = CachingWriter.extend({});
       var instance = new MyPlugin("foo");
       expect(instance.inputTrees).to.eql(["foo"]);
     });
 
     it('can write files to destDir, and they will be in the final output', function(){
-      var TestWriter = cachingWriter.extend({
+      var TestWriter = CachingWriter.extend({
         updateCache: function(srcDir, destDir) {
           fs.writeFileSync(destDir + '/something-cooler.js', 'whoa', {encoding: 'utf8'});
         }

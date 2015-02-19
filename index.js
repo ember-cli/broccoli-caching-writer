@@ -12,9 +12,9 @@ var CoreObject = require('core-object');
 var debugGenerator = require('debug');
 var Key = require('./key');
 
-var proto = {};
+var CachingWriter = {};
 
-proto.init = function(inputTrees, options) {
+CachingWriter.init = function(inputTrees, options) {
   this._inputTreeCacheHash = [];
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
@@ -61,17 +61,17 @@ proto.init = function(inputTrees, options) {
   }
 };
 
-proto.enforceSingleInputTree = false;
+CachingWriter.enforceSingleInputTree = false;
 
-proto.getCacheDir = function () {
+CachingWriter.getCacheDir = function () {
   return quickTemp.makeOrReuse(this, 'tmpCacheDir');
 };
 
-proto.getCleanCacheDir = function () {
+CachingWriter.getCleanCacheDir = function () {
   return quickTemp.makeOrRemake(this, 'tmpCacheDir');
 };
 
-proto.read = function (readTree) {
+CachingWriter.read = function (readTree) {
   var self = this;
 
   return mapSeries(this.inputTrees, readTree)
@@ -115,7 +115,7 @@ proto.read = function (readTree) {
     });
 };
 
-proto.cleanup = function () {
+CachingWriter.cleanup = function () {
   quickTemp.remove(this, 'tmpCacheDir');
 
   // sadly we must use sync removal for now
@@ -124,14 +124,14 @@ proto.cleanup = function () {
   }
 };
 
-proto.updateCache = function (srcDir, destDir) {
+CachingWriter.updateCache = function (srcDir, destDir) {
   throw new Error('You must implement updateCache.');
 };
 
 // Takes in a path and { include, exclude }. Tests the path using regular expressions and
 // returns true if the path does not match any exclude patterns AND matches atleast
 // one include pattern.
-proto.shouldBeIgnored = function (fullPath) {
+CachingWriter.shouldBeIgnored = function (fullPath) {
   if (this._shouldBeIgnoredCache[fullPath] !== undefined) {
     return this._shouldBeIgnoredCache[fullPath];
   }
@@ -166,7 +166,7 @@ proto.shouldBeIgnored = function (fullPath) {
   return (this._shouldBeIgnoredCache[fullPath] = false);
 };
 
-proto.keyForTree = function (fullPath, initialRelativePath) {
+CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
   var relativePath = initialRelativePath || '.';
   var stats;
   var statKeys;
@@ -214,16 +214,4 @@ proto.keyForTree = function (fullPath, initialRelativePath) {
   return new Key(type, fullPath, relativePath, stats, children, this.debug);
 };
 
-function CachingWriter (inputTrees, options) {
-  if (!(this instanceof CachingWriter)) return new CachingWriter(inputTrees, options);
-  CoreObject.apply(this, arguments);
-  if (this.init) {
-    this.init.apply(this, arguments);
-  }
-}
-
-CachingWriter.__proto__ = CoreObject;
-CachingWriter.prototype = Object.create(CoreObject.prototype);
-assign(CachingWriter.prototype, proto);
-
-module.exports = CachingWriter;
+module.exports = CoreObject.extend(CachingWriter);

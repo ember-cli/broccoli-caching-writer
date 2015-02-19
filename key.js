@@ -1,7 +1,5 @@
 var EMPTY_ARRAY = [];
 
-module.exports = Key;
-
 function Key(type, fullPath, path, stat, children, debug) {
   this.type = type;
   this.fullPath = fullPath;
@@ -69,3 +67,5 @@ Key.prototype.equal = function(otherKey) {
     logNotEqual(this, otherKey);
   }
 };
+
+module.exports = Key;
