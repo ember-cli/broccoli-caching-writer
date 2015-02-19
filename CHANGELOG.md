@@ -1,3 +1,11 @@
+## 0.5.5
+
+* Add ability to debug which files are causing an invalidation of the cache. The following will generate output indicating which path changed:
+
+```
+DEBUG=broccoli-caching-writer broccoli serve # if using broccoli-cli
+```
+
 ## 0.5.4
 
 * Update to newer core-object version.
