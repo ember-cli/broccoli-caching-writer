@@ -14,14 +14,14 @@ var Key = require('./key');
 
 var CachingWriter = {};
 
-CachingWriter.init = function(inputTrees, options) {
+CachingWriter.init = function(inputTrees, _options) {
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this._destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
 
   this.debug = debugGenerator('broccoli-caching-writer:' + (this.description || this.constructor.name));
 
-  options = options || {};
+  var options = _options || {};
 
   for (var key in options) {
     if (options.hasOwnProperty(key)) {
