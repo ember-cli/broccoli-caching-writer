@@ -15,7 +15,6 @@ var Key = require('./key');
 var CachingWriter = {};
 
 CachingWriter.init = function(inputTrees, options) {
-  this._inputTreeCacheHash = [];
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this._destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
@@ -98,8 +97,6 @@ CachingWriter.read = function (readTree) {
         updateCacheResult = self.updateCache(updateCacheSrcArg, self.getCleanCacheDir());
 
         self._lastKeys = lastKeys;
-
-        self._inputTreeCacheHash = inputTreeHashes;
       }
 
       return updateCacheResult;
