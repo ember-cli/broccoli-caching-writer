@@ -10,7 +10,7 @@ If you would prefer to perform your plugins work in a non-synchronous way, simpl
 
 ## Documentation
 
-### `CachingWriter(inputTrees, options)`
+### `new CachingWriter(inputTrees, options)`
 
 `inputTrees` *{Array of Trees | Single Tree}*
 
