@@ -330,7 +330,7 @@ describe('broccoli-caching-writer', function(){
   });
 
   describe('arguments', function() {
-    it('throws exception when no input tre is provided', function() {
+    it('throws exception when no input tree is provided', function() {
       expect(function() {
         new CachingWriter();
       }).to.throwException(/no inputTree was provided/);
