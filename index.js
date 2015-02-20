@@ -14,18 +14,19 @@ var Key = require('./key');
 
 var CachingWriter = {};
 
-CachingWriter.init = function(inputTrees, _options) {
+CachingWriter.init = function(inputTrees, options) {
+  this._super.apply(this, arguments);
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this._destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
 
   this.debug = debugGenerator('broccoli-caching-writer:' + (this.description || this.constructor.name));
 
-  var options = _options || {};
-
-  for (var key in options) {
-    if (options.hasOwnProperty(key)) {
-      this[key] = options[key];
+  if (options) {
+    for (var key in options) {
+      if (options.hasOwnProperty(key)) {
+        this[key] = options[key];
+      }
     }
   }
 
@@ -79,7 +80,6 @@ CachingWriter.read = function (readTree) {
 
   return mapSeries(this.inputTrees, readTree)
     .then(function(inputPaths) {
-      var inputTreeHashes = [];
       var invalidateCache = false;
       var key, dir, updateCacheResult;
       var lastKeys = [];
@@ -98,6 +98,7 @@ CachingWriter.read = function (readTree) {
 
       if (invalidateCache) {
         var updateCacheSrcArg = writer.enforceSingleInputTree ? inputPaths[0] : inputPaths;
+
         updateCacheResult = writer.updateCache(updateCacheSrcArg, writer.getCleanCacheDir());
 
         writer._lastKeys = lastKeys;
@@ -105,15 +106,9 @@ CachingWriter.read = function (readTree) {
 
       return updateCacheResult;
     })
-    .then(function() {
-      return rimraf(writer._destDir);
-    })
-    .then(function() {
-      symlinkOrCopy.sync(writer.getCacheDir(), writer._destDir);
-    })
-    .then(function() {
-      return writer._destDir;
-    });
+    .then(function() { return rimraf(writer._destDir); })
+    .then(function() { symlinkOrCopy.sync(writer.getCacheDir(), writer._destDir); })
+    .then(function() { return writer._destDir; });
 };
 
 CachingWriter.cleanup = function () {
@@ -188,6 +183,7 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
     type = 'directory';
 
     var files;
+
     try {
       files = fs.readdirSync(fullPath).sort();
     } catch (err) {
