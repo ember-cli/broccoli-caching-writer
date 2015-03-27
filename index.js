@@ -65,32 +65,32 @@ CachingWriter.enforceSingleInputTree = false;
 CachingWriter.rebuild = function () {
   var writer = this;
 
-      var invalidateCache = false;
-      var key, dir, updateCacheResult;
-      var lastKeys = [];
+  var invalidateCache = false;
+  var key, dir, updateCacheResult;
+  var lastKeys = [];
 
-      for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
-        dir = writer.inputPaths[i];
+  for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
+    dir = writer.inputPaths[i];
 
-        key = writer.keyForTree(dir);
-        lastKey = writer._lastKeys[i];
-        lastKeys.push(key);
+    key = writer.keyForTree(dir);
+    lastKey = writer._lastKeys[i];
+    lastKeys.push(key);
 
-        if (!invalidateCache /* short circuit */ && !key.equal(lastKey)) {
-          invalidateCache = true;
-        }
-      }
+    if (!invalidateCache /* short circuit */ && !key.equal(lastKey)) {
+      invalidateCache = true;
+    }
+  }
 
-      if (invalidateCache) {
-        var updateCacheSrcArg = writer.enforceSingleInputTree ? writer.inputPaths[0] : writer.inputPaths;
+  if (invalidateCache) {
+    var updateCacheSrcArg = writer.enforceSingleInputTree ? writer.inputPaths[0] : writer.inputPaths;
 
-        updateCacheResult = rimraf(writer.cachePath).then(function () {
-          fs.mkdirSync(writer.cachePath);
-          return writer.updateCache(updateCacheSrcArg, writer.cachePath);
-        });
+    updateCacheResult = rimraf(writer.cachePath).then(function () {
+      fs.mkdirSync(writer.cachePath);
+      return writer.updateCache(updateCacheSrcArg, writer.cachePath);
+    });
 
-        writer._lastKeys = lastKeys;
-      }
+    writer._lastKeys = lastKeys;
+  }
 
   return RSVP.resolve(updateCacheResult).then(function () {
     fs.rmdirSync(writer.outputPath);
