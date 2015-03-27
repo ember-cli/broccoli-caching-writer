@@ -2,11 +2,8 @@ var fs = require('fs');
 var path = require('path');
 var RSVP = require('rsvp');
 var rimraf = RSVP.denodeify(require('rimraf'));
-var mapSeries = require('promise-map-series');
-var quickTemp = require('quick-temp');
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
-var generateRandomString = require('./lib/generate-random-string');
 var assign = require('lodash-node/modern/object/assign');
 var CoreObject = require('core-object');
 var debugGenerator = require('debug');
@@ -15,10 +12,8 @@ var Key = require('./key');
 var CachingWriter = {};
 
 CachingWriter.init = function(inputTrees, options) {
-  this._super.apply(this, arguments);
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
-  this._destDir = path.resolve(path.join('tmp', 'caching-writer-dest-dir_' + generateRandomString(6) + '.tmp'));
 
   this.debug = debugGenerator('broccoli-caching-writer:' + (this.description || this.constructor.name));
 
@@ -67,25 +62,15 @@ CachingWriter.init = function(inputTrees, options) {
 
 CachingWriter.enforceSingleInputTree = false;
 
-CachingWriter.getCacheDir = function () {
-  return quickTemp.makeOrReuse(this, 'tmpCacheDir');
-};
-
-CachingWriter.getCleanCacheDir = function () {
-  return quickTemp.makeOrRemake(this, 'tmpCacheDir');
-};
-
-CachingWriter.read = function (readTree) {
+CachingWriter.rebuild = function () {
   var writer = this;
 
-  return mapSeries(this.inputTrees, readTree)
-    .then(function(inputPaths) {
       var invalidateCache = false;
       var key, dir, updateCacheResult;
       var lastKeys = [];
 
-      for (var i = 0, l = inputPaths.length; i < l; i++) {
-        dir = inputPaths[i];
+      for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
+        dir = writer.inputPaths[i];
 
         key = writer.keyForTree(dir);
         lastKey = writer._lastKeys[i];
@@ -97,27 +82,20 @@ CachingWriter.read = function (readTree) {
       }
 
       if (invalidateCache) {
-        var updateCacheSrcArg = writer.enforceSingleInputTree ? inputPaths[0] : inputPaths;
+        var updateCacheSrcArg = writer.enforceSingleInputTree ? writer.inputPaths[0] : writer.inputPaths;
 
-        updateCacheResult = writer.updateCache(updateCacheSrcArg, writer.getCleanCacheDir());
+        updateCacheResult = rimraf(writer.cachePath).then(function () {
+          fs.mkdirSync(writer.cachePath);
+          return writer.updateCache(updateCacheSrcArg, writer.cachePath);
+        });
 
         writer._lastKeys = lastKeys;
       }
 
-      return updateCacheResult;
-    })
-    .then(function() { return rimraf(writer._destDir); })
-    .then(function() { symlinkOrCopy.sync(writer.getCacheDir(), writer._destDir); })
-    .then(function() { return writer._destDir; });
-};
-
-CachingWriter.cleanup = function () {
-  quickTemp.remove(this, 'tmpCacheDir');
-
-  // sadly we must use sync removal for now
-  if (this._destDir) {
-    rimraf.sync(this._destDir);
-  }
+  return RSVP.resolve(updateCacheResult).then(function () {
+    fs.rmdirSync(writer.outputPath);
+    symlinkOrCopy.sync(writer.cachePath, writer.outputPath);
+  });
 };
 
 CachingWriter.updateCache = function (srcDir, destDir) {
