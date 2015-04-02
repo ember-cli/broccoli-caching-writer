@@ -8,6 +8,7 @@ var assign = require('lodash-node/modern/object/assign');
 var CoreObject = require('core-object');
 var debugGenerator = require('debug');
 var Key = require('./key');
+var readCompatAPI = require('broccoli-read-compat');
 
 var CachingWriter = {};
 
@@ -189,4 +190,8 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
   return new Key(type, fullPath, relativePath, stats, children, this.debug);
 };
 
-module.exports = CoreObject.extend(CachingWriter);
+var CachingWriterClass = CoreObject.extend(CachingWriter);
+
+readCompatAPI.wrapFactory(CachingWriterClass);
+
+module.exports = CachingWriterClass;
