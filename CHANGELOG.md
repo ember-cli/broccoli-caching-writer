@@ -1,3 +1,5 @@
+* Use new [`.rebuild` API](https://github.com/broccolijs/broccoli/blob/master/docs/new-rebuild-api.md)
+
 ## 0.5.5
 
 * Add ability to debug which files are causing an invalidation of the cache. The following will generate output indicating which path changed:
