@@ -92,7 +92,7 @@ CachingWriter.rebuild = function () {
     writer._lastKeys = lastKeys;
   }
 
-  return RSVP.resolve(updateCacheResult).then(function () {
+  return RSVP.Promise.resolve(updateCacheResult).then(function () {
     fs.rmdirSync(writer.outputPath);
     symlinkOrCopy.sync(writer.cachePath, writer.outputPath);
   });
