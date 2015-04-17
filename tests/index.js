@@ -411,4 +411,33 @@ describe('broccoli-caching-writer', function(){
       });
     });
   });
+
+  describe('listFiles', function() {
+    var tree, listFiles;
+
+    beforeEach(function() {
+      tree = new CachingWriter(sourcePath);
+      tree.updateCache = function(srcDir, destDir){
+        listFiles = this.listFiles();
+      }
+    });
+
+    it('returns an array of files keyed', function() {
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function() {
+        expect(listFiles).to.eql(['tests/fixtures/sample-project/core.js',
+                                  'tests/fixtures/sample-project/main.js']);
+        expect(listFiles.length).to.equal(2)
+      });
+    });
+
+    it('returns an array of files keyed ignoring those in the exclude filter', function() {
+      tree.filterFromCache.exclude = [ /main\.js$/ ]
+      builder = new broccoli.Builder(tree);
+      return builder.build().then(function() {
+        expect(listFiles).to.eql(['tests/fixtures/sample-project/core.js']);
+        expect(listFiles.length).to.equal(1)
+      });
+    });
+  })
 });

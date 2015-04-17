@@ -85,12 +85,13 @@ CachingWriter.rebuild = function () {
   if (invalidateCache) {
     var updateCacheSrcArg = writer.enforceSingleInputTree ? writer.inputPaths[0] : writer.inputPaths;
 
+    writer._lastKeys = lastKeys;
+
     updateCacheResult = rimraf(writer.cachePath).then(function () {
       fs.mkdirSync(writer.cachePath);
       return writer.updateCache(updateCacheSrcArg, writer.cachePath);
     });
 
-    writer._lastKeys = lastKeys;
   }
 
   return RSVP.Promise.resolve(updateCacheResult).then(function () {
@@ -189,6 +190,25 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
 
   return new Key(type, fullPath, relativePath, stats, children, this.debug);
 };
+
+// Returns a list of matched files
+CachingWriter.listFiles = function() {
+  function listFiles(keys, files) {
+    for (var i=0; i< keys.length; i++) {
+      var key = keys[i]
+      if (key.type === 'file') {
+        files.push(key.fullPath)
+      } else {
+        var children = key.children;
+        if(children && children.length > 0) {
+          listFiles(children, files)
+        }
+      }
+    }
+    return files
+  }
+  return listFiles(this._lastKeys, [])
+}
 
 var CachingWriterClass = CoreObject.extend(CachingWriter);
 
