@@ -209,7 +209,7 @@ describe('broccoli-caching-writer', function(){
           return buildInSeries(3);
         })
         .finally(function() {
-          expect(updateCacheCount).to.equal(1);
+          expect(updateCacheCount).to.equal(2);
         });
     });
 
@@ -236,7 +236,7 @@ describe('broccoli-caching-writer', function(){
           return buildInSeries(3);
         })
         .finally(function() {
-          expect(updateCacheCount).to.equal(1);
+          expect(updateCacheCount).to.equal(2);
         });
     });
 

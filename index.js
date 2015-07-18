@@ -15,8 +15,7 @@ var CachingWriter = {};
 CachingWriter.init = function(inputTrees, options) {
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
-
-  this.debug = debugGenerator('broccoli-caching-writer:' + (this.description || this.constructor.name));
+  this.constructorDescription = this.description; // TODO: why do we smash this?
 
   if (options) {
     for (var key in options) {
@@ -62,6 +61,10 @@ CachingWriter.init = function(inputTrees, options) {
 };
 
 CachingWriter.enforceSingleInputTree = false;
+
+CachingWriter.debug = function() {
+  return this._debug || (this._debug = debugGenerator('broccoli-caching-writer:' + (this.constructorDescription || this.constructor.name) + ' > [' + this.description + ']'));
+};
 
 CachingWriter.rebuild = function () {
   var writer = this;
@@ -188,7 +191,7 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
     }
   }
 
-  return new Key(type, fullPath, relativePath, stats, children, this.debug);
+  return new Key(type, fullPath, relativePath, stats, children, this.debug());
 };
 
 // Returns a list of matched files

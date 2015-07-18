@@ -19,7 +19,11 @@ Key.prototype.toString = function() {
 };
 
 function logNotEqual(previous, next) {
-  previous.debug(" cache eviction due to: \n     - {%o} \n     - {%o}", previous, next);
+  if (previous) {
+    previous.debug(" cache eviction due to: \n     - {%o} \n     - {%o}", previous, next);
+  } else {
+    previous.debug(" cache empty, priming with: - {%o} ", next);
+  }
 }
 
 Key.prototype.inspect = function() {
