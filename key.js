@@ -29,6 +29,7 @@ function logNotEqual(previous, next) {
 Key.prototype.inspect = function() {
   return [
     this.type,
+    this.fullPath,
     this.path,
     this.stat.mode,
     this.stat.size,
@@ -64,8 +65,8 @@ Key.prototype.equal = function(otherKey) {
   if (this.type       === otherKey.type &&
       this.path       === otherKey.path &&
       this.stat.mode  === otherKey.stat.mode &&
-      this.stat.size  === otherKey.stat.size &&
-      (this.type === 'directory' ? true : this.stat.mtime.getTime() === otherKey.stat.mtime.getTime())) {
+      (this.type === 'directory' ? true : (this.stat.size === otherKey.stat.size &&
+                                           this.stat.mtime.getTime() === otherKey.stat.mtime.getTime()))) {
     return true;
   } else {
     logNotEqual(this, otherKey);

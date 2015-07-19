@@ -233,7 +233,7 @@ describe('broccoli-caching-writer', function(){
         .then(function() {
           fs.writeFileSync(dummyChangedFile, 'bergh');
 
-          return buildInSeries(3);
+          return buildInSeries(4);
         })
         .finally(function() {
           expect(updateCacheCount).to.equal(1);
