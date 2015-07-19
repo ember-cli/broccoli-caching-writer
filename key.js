@@ -29,6 +29,7 @@ function logNotEqual(previous, next) {
 Key.prototype.inspect = function() {
   return [
     this.type,
+    this.fullPath,
     this.path,
     this.stat.mode,
     this.stat.size,
