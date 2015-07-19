@@ -13,13 +13,9 @@ environment:
 install:
   # Get the latest stable version of Node 0.STABLE.latest
   - ps: Install-Product node $env:nodejs_version
-  # Install PhantomJS
-  - cinst PhantomJS -y
   # Typical npm stuff.
   - md C:\nc
   - npm install -g npm@latest
-  # hide python so node-gyp won't try to build native extentions
-  - rename C:\Python27 Python27hidden
   # Workaround https://github.com/npm/npm/wiki/Troubleshooting#upgrading-on-windows
   - set PATH=%APPDATA%\npm;%PATH%
   - npm config set cache C:\nc
@@ -30,7 +26,7 @@ install:
 test_script:
   # Output useful info for debugging.
   - npm version
-  - cmd: npm run test-all
+  - cmd: npm run test
 
 # Don't actually build.
 build: off
