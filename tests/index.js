@@ -272,10 +272,16 @@ describe('broccoli-caching-writer', function(){
     it('provides array of paths if array of sourceTrees was provided', function() {
       var tree = new CachingWriter([sourcePath, secondaryPath], {
         updateCache: function(srcDirs, destDir) {
-          expect(fs.readFileSync(srcDirs[0] + '/core.js', {encoding: 'utf8'})).to.eql('"YIPPIE"\n');
-          expect(fs.readFileSync(srcDirs[1] + '/bar.js', {encoding: 'utf8'})).to.eql('"BLAMMO!"\n');
+          expect(fs.readFileSync(srcDirs[0] + '/core.js', {
+            encoding: 'utf8'
+          })).to.contain('"YIPPIE"');
+          expect(fs.readFileSync(srcDirs[1] + '/bar.js', {
+            encoding: 'utf8'
+          })).to.contain('"BLAMMO!"');
 
-          fs.writeFileSync(destDir + '/something-cool.js', 'zomg blammo', {encoding: 'utf8'});
+          fs.writeFileSync(destDir + '/something-cool.js', 'zomg blammo', {
+            encoding: 'utf8'
+          });
         }
       });
 
@@ -283,7 +289,9 @@ describe('broccoli-caching-writer', function(){
       return builder.build().then(function(result) {
         var dir = result.directory;
 
-        expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.equal('zomg blammo');
+        expect(fs.readFileSync(dir + '/something-cool.js', {
+          encoding: 'utf8'
+        })).to.equal('zomg blammo');
       });
     });
 
@@ -297,7 +305,9 @@ describe('broccoli-caching-writer', function(){
       builder = new broccoli.Builder(tree);
       return builder.build().then(function(result) {
         var dir = result.directory;
-        expect(fs.readFileSync(dir + '/something-cool.js', {encoding: 'utf8'})).to.equal('zomg blammo');
+        expect(fs.readFileSync(dir + '/something-cool.js', {
+          encoding: 'utf8'
+        })).to.equal('zomg blammo');
       });
     });
 
@@ -392,8 +402,8 @@ describe('broccoli-caching-writer', function(){
 
     it('calls CachingWriter constructor', function () {
       var MyPlugin = CachingWriter.extend({});
-      var instance = new MyPlugin("foo");
-      expect(instance.inputTrees).to.eql(["foo"]);
+      var instance = new MyPlugin('foo');
+      expect(instance.inputTrees).to.eql(['foo']);
     });
 
     it('can write files to destDir, and they will be in the final output', function(){
@@ -425,8 +435,10 @@ describe('broccoli-caching-writer', function(){
     it('returns an array of files keyed', function() {
       builder = new broccoli.Builder(tree);
       return builder.build().then(function() {
-        expect(listFiles).to.eql(['tests/fixtures/sample-project/core.js',
-                                  'tests/fixtures/sample-project/main.js']);
+        expect(listFiles).to.eql([
+          path.normalize('tests/fixtures/sample-project/core.js'),
+          path.normalize('tests/fixtures/sample-project/main.js')
+        ]);
         expect(listFiles.length).to.equal(2)
       });
     });
@@ -434,8 +446,11 @@ describe('broccoli-caching-writer', function(){
     it('returns an array of files keyed including only those in the include filter', function() {
       tree.filterFromCache.include = [ /core\.js$/ ]
       builder = new broccoli.Builder(tree);
+
       return builder.build().then(function() {
-        expect(listFiles).to.eql(['tests/fixtures/sample-project/core.js']);
+        expect(listFiles).to.eql([
+          path.normalize('tests/fixtures/sample-project/core.js')
+        ]);
         expect(listFiles.length).to.equal(1)
       });
     });
@@ -443,8 +458,11 @@ describe('broccoli-caching-writer', function(){
     it('returns an array of files keyed ignoring those in the exclude filter', function() {
       tree.filterFromCache.exclude = [ /main\.js$/ ]
       builder = new broccoli.Builder(tree);
+
       return builder.build().then(function() {
-        expect(listFiles).to.eql(['tests/fixtures/sample-project/core.js']);
+        expect(listFiles).to.eql([
+          path.normalize('tests/fixtures/sample-project/core.js')
+        ]);
         expect(listFiles.length).to.equal(1)
       });
     });
@@ -452,9 +470,13 @@ describe('broccoli-caching-writer', function(){
     it('returns an array of files keyed both include & exclude filters', function() {
       tree.filterFromCache.include = [ /\.js$/ ]
       tree.filterFromCache.exclude = [ /core\.js$/ ]
+
       builder = new broccoli.Builder(tree);
+
       return builder.build().then(function() {
-        expect(listFiles).to.eql(['tests/fixtures/sample-project/main.js']);
+        expect(listFiles).to.eql([
+          path.normalize('tests/fixtures/sample-project/main.js')
+        ]);
         expect(listFiles.length).to.equal(1)
       });
     });
