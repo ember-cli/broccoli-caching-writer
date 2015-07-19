@@ -101,5 +101,5 @@ npm test
 
 This project is distributed under the MIT license.
 
-[appveyor-badge]: https://ci.appveyor.com/api/projects/status/7owf61lo8uujbjok/branch/master?svg=true
+[appveyor-badge]: https://ci.appveyor.com/api/projects/status/ocfp2hqo7hyhyy80?svg=true
 [appveyor-badge-url]: https://ci.appveyor.com/project/embercli/broccoli-caching-writer/branch/master
