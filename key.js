@@ -18,11 +18,11 @@ Key.prototype.toString = function() {
          ' stat.mtime: ' + this.stat.mtime.getTime();
 };
 
-function logNotEqual(previous, next) {
-  if (previous) {
-    previous.debug(" cache eviction due to: \n     - {%o} \n     - {%o}", previous, next);
+function logNotEqual(current, next) {
+  if (next) {
+    current.debug(" cache eviction due to: \n     - {%o} \n     - {%o}", current, next);
   } else {
-    previous.debug(" cache empty, priming with: - {%o} ", next);
+    current.debug(" cache empty, priming with: - {%o} ", next);
   }
 }
 
@@ -67,6 +67,7 @@ Key.prototype.equal = function(otherKey) {
       this.stat.mode  === otherKey.stat.mode &&
       (this.type === 'directory' ? true : (this.stat.size === otherKey.stat.size &&
                                            this.stat.mtime.getTime() === otherKey.stat.mtime.getTime()))) {
+
     return true;
   } else {
     logNotEqual(this, otherKey);
