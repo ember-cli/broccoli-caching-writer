@@ -16,6 +16,7 @@ CachingWriter.init = function(inputTrees, options) {
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this.constructorDescription = this.description; // TODO: why do we smash this?
+  this._resetStats();
 
   if (options) {
     for (var key in options) {
@@ -65,9 +66,15 @@ CachingWriter.enforceSingleInputTree = false;
 CachingWriter.debug = function() {
   return this._debug || (this._debug = debugGenerator('broccoli-caching-writer:' + (this.constructorDescription || this.constructor.name) + ' > [' + this.description + ']'));
 };
-
+CachingWriter._resetStats = function() {
+  this._stats = {
+    stats: 0,
+    files: 0
+  };
+};
 CachingWriter.rebuild = function () {
   var writer = this;
+  var start = new Date();
 
   var invalidateCache = false;
   var key, dir, updateCacheResult;
@@ -84,6 +91,9 @@ CachingWriter.rebuild = function () {
       invalidateCache = true;
     }
   }
+
+  this._debug('rebuild %o in %dms', this._stats, new Date() - start);
+  this._resetStats();
 
   if (invalidateCache) {
     var updateCacheSrcArg = writer.enforceSingleInputTree ? writer.inputPaths[0] : writer.inputPaths;
@@ -152,6 +162,7 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
   var type;
 
   try {
+    this._stats.stats++;
     stats = fs.statSync(fullPath);
   } catch (err) {
     console.warn('Warning: failed to stat ' + fullPath);
@@ -175,6 +186,7 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
     }
 
     if (files) {
+      this._stats.files += files.length;
       children = files.map(function(file) {
         return this.keyForTree(
           path.join(fullPath, file),
