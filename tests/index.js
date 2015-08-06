@@ -365,56 +365,22 @@ describe('broccoli-caching-writer', function() {
     });
   });
 
-  describe('extend', function() {
-    it('sets the methods correctly', function() {
-      var TestPlugin = CachingWriter.extend({
-        foo: function() {}
-      });
-
-      expect(TestPlugin).to.be.a(Function);
-      expect(TestPlugin.prototype.foo).to.be.a(Function);
-    });
-
-    it('calls CachingWriter constructor', function () {
-      var MyPlugin = CachingWriter.extend({});
-      var instance = new MyPlugin(['foo']);
-      expect(instance.inputTrees).to.eql(['foo']);
-    });
-
-    it('can write files to destDir, and they will be in the final output', function(){
-      var TestWriter = CachingWriter.extend({
-        updateCache: function(srcDir, destDir) {
-          fs.writeFileSync(destDir + '/something-cooler.js', 'whoa', {encoding: 'utf8'});
-        }
-      });
-      var tree = new TestWriter([sourcePath]);
-
-      builder = new broccoli.Builder(tree);
-      return builder.build().then(function(result) {
-        var dir = result.directory;
-        expect(fs.readFileSync(dir + '/something-cooler.js', {encoding: 'utf8'})).to.equal('whoa');
-      });
-    });
-  });
-
   describe('listFiles', function() {
     var tree, listFiles;
 
     beforeEach(function() {
       tree = new CachingWriter([sourcePath]);
-      tree.updateCache = function(srcDir, destDir){
-        listFiles = this.listFiles();
+      tree.updateCache = function(srcDirs, destDir){
+        listFiles = this.listFiles().map(function(p) {
+          return path.relative(srcDirs[0], p);
+        });
       };
     });
 
     it('returns an array of files keyed', function() {
       builder = new broccoli.Builder(tree);
       return builder.build().then(function() {
-        expect(listFiles).to.eql([
-          path.normalize('tests/fixtures/sample-project/core.js'),
-          path.normalize('tests/fixtures/sample-project/main.js')
-        ]);
-        expect(listFiles.length).to.equal(2);
+        expect(listFiles).to.eql(['core.js', 'main.js']);
       });
     });
 
@@ -423,10 +389,7 @@ describe('broccoli-caching-writer', function() {
       builder = new broccoli.Builder(tree);
 
       return builder.build().then(function() {
-        expect(listFiles).to.eql([
-          path.normalize('tests/fixtures/sample-project/core.js')
-        ]);
-        expect(listFiles.length).to.equal(1);
+        expect(listFiles).to.eql(['core.js']);
       });
     });
 
@@ -435,10 +398,7 @@ describe('broccoli-caching-writer', function() {
       builder = new broccoli.Builder(tree);
 
       return builder.build().then(function() {
-        expect(listFiles).to.eql([
-          path.normalize('tests/fixtures/sample-project/core.js')
-        ]);
-        expect(listFiles.length).to.equal(1);
+        expect(listFiles).to.eql(['core.js']);
       });
     });
 
@@ -449,10 +409,7 @@ describe('broccoli-caching-writer', function() {
       builder = new broccoli.Builder(tree);
 
       return builder.build().then(function() {
-        expect(listFiles).to.eql([
-          path.normalize('tests/fixtures/sample-project/main.js')
-        ]);
-        expect(listFiles.length).to.equal(1);
+        expect(listFiles).to.eql(['main.js']);
       });
     });
   });

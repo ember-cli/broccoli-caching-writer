@@ -1,5 +1,6 @@
 ## master
 
+* Derive from broccoli-plugin base class; stop deriving from CoreObject
 * Remove `enforceSingleInputTree` option; we now always expect an array
 
 ## 1.0.0

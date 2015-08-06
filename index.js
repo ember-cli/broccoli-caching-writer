@@ -5,15 +5,19 @@ var rimraf = RSVP.denodeify(require('rimraf'));
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
 var assign = require('lodash-node/modern/object/assign');
-var CoreObject = require('core-object');
+var Plugin = require('broccoli-plugin');
 var debugGenerator = require('debug');
 var Key = require('./key');
-var readCompatAPI = require('broccoli-read-compat');
 var canUseInputFiles = require('./can-use-input-files');
 
-var CachingWriter = {};
+CachingWriter.prototype = Object.create(Plugin.prototype);
+CachingWriter.prototype.constructor = CachingWriter;
+function CachingWriter (inputTrees, options) {
+  if (!Array.isArray(inputTrees)) {
+    throw new Error('Expected an array of inputTrees, got ' + inputTrees);
+  }
+  Plugin.call(this, inputTrees);
 
-CachingWriter.init = function(inputTrees, options) {
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this.constructorDescription = this.description; // TODO: why do we smash this?
@@ -26,11 +30,6 @@ CachingWriter.init = function(inputTrees, options) {
       }
     }
   }
-
-  if (!Array.isArray(inputTrees)) {
-    throw new Error('Expected an array of inputTrees, got ' + inputTrees);
-  }
-  this.inputTrees = inputTrees;
 
   if (this.filterFromCache === undefined) {
     this.filterFromCache = {};
@@ -51,18 +50,20 @@ CachingWriter.init = function(inputTrees, options) {
   if (!Array.isArray(this.filterFromCache.exclude)) {
     throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.');
   }
-};
+}
 
-CachingWriter.debug = function() {
+CachingWriter.prototype.debug = function() {
   return this._debug || (this._debug = debugGenerator('broccoli-caching-writer:' + (this.constructorDescription || this.constructor.name) + ' > [' + this.description + ']'));
 };
-CachingWriter._resetStats = function() {
+
+CachingWriter.prototype._resetStats = function() {
   this._stats = {
     stats: 0,
     files: 0
   };
 };
-CachingWriter.rebuild = function () {
+
+CachingWriter.prototype.build = function () {
   var writer = this;
   var start = new Date();
 
@@ -102,14 +103,14 @@ CachingWriter.rebuild = function () {
   });
 };
 
-CachingWriter.updateCache = function (srcDirs, destDir) {
+CachingWriter.prototype.updateCache = function (srcDirs, destDir) {
   throw new Error('You must implement updateCache.');
 };
 
 // Takes in a path and { include, exclude }. Tests the path using regular expressions and
 // returns true if the path does not match any exclude patterns AND matches atleast
 // one include pattern.
-CachingWriter.shouldBeIgnored = function (fullPath) {
+CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
   if (this._shouldBeIgnoredCache[fullPath] !== undefined) {
     return this._shouldBeIgnoredCache[fullPath];
   }
@@ -144,7 +145,7 @@ CachingWriter.shouldBeIgnored = function (fullPath) {
   return (this._shouldBeIgnoredCache[fullPath] = false);
 };
 
-CachingWriter.keyForTree = function (fullPath, initialRelativePath, dir) {
+CachingWriter.prototype.keyForTree = function (fullPath, initialRelativePath, dir) {
   var relativePath = initialRelativePath || '.';
   var stats;
   var statKeys;
@@ -207,7 +208,7 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath, dir) {
 };
 
 // Returns a list of matched files
-CachingWriter.listFiles = function() {
+CachingWriter.prototype.listFiles = function() {
   function listFiles(keys, files) {
     for (var i=0; i< keys.length; i++) {
       var key = keys[i];
@@ -225,8 +226,4 @@ CachingWriter.listFiles = function() {
   return listFiles(this._lastKeys, []);
 };
 
-var CachingWriterClass = CoreObject.extend(CachingWriter);
-
-readCompatAPI.wrapFactory(CachingWriterClass);
-
-module.exports = CachingWriterClass;
+module.exports = CachingWriter;
