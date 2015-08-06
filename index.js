@@ -9,6 +9,7 @@ var CoreObject = require('core-object');
 var debugGenerator = require('debug');
 var Key = require('./key');
 var readCompatAPI = require('broccoli-read-compat');
+var canUseInputFiles = require('./can-use-input-files');
 
 var CachingWriter = {};
 
@@ -16,6 +17,7 @@ CachingWriter.init = function(inputTrees, options) {
   this._lastKeys = [];
   this._shouldBeIgnoredCache = Object.create(null);
   this.constructorDescription = this.description; // TODO: why do we smash this?
+  this._resetStats();
 
   if (options) {
     for (var key in options) {
@@ -65,9 +67,15 @@ CachingWriter.enforceSingleInputTree = false;
 CachingWriter.debug = function() {
   return this._debug || (this._debug = debugGenerator('broccoli-caching-writer:' + (this.constructorDescription || this.constructor.name) + ' > [' + this.description + ']'));
 };
-
+CachingWriter._resetStats = function() {
+  this._stats = {
+    stats: 0,
+    files: 0
+  };
+};
 CachingWriter.rebuild = function () {
   var writer = this;
+  var start = new Date();
 
   var invalidateCache = false;
   var key, dir, updateCacheResult;
@@ -76,7 +84,7 @@ CachingWriter.rebuild = function () {
   for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
     dir = writer.inputPaths[i];
 
-    key = writer.keyForTree(dir);
+    key = writer.keyForTree(dir, undefined, dir);
     lastKey = writer._lastKeys[i];
     lastKeys.push(key);
 
@@ -84,6 +92,10 @@ CachingWriter.rebuild = function () {
       invalidateCache = true;
     }
   }
+
+  this._stats.inputPaths = writer.inputPaths;
+  this._debug('rebuild %o in %dms', this._stats, new Date() - start);
+  this._resetStats();
 
   if (invalidateCache) {
     var updateCacheSrcArg = writer.enforceSingleInputTree ? writer.inputPaths[0] : writer.inputPaths;
@@ -145,13 +157,14 @@ CachingWriter.shouldBeIgnored = function (fullPath) {
   return (this._shouldBeIgnoredCache[fullPath] = false);
 };
 
-CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
+CachingWriter.keyForTree = function (fullPath, initialRelativePath, dir) {
   var relativePath = initialRelativePath || '.';
   var stats;
   var statKeys;
   var type;
 
   try {
+    this._stats.stats++;
     stats = fs.statSync(fullPath);
   } catch (err) {
     console.warn('Warning: failed to stat ' + fullPath);
@@ -174,11 +187,23 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
       console.warn(err.stack);
     }
 
-    if (files) {
+    if (canUseInputFiles(this.inputFiles)) {
+      children = this.inputFiles.map(function(file) {
+        return this.keyForTree(
+          path.join(dir, file),
+          file,
+          dir
+        );
+      }, this);
+      this._stats.files += children.length;
+      children = children.filter(Boolean);
+    } else if (files) {
+      this._stats.files += files.length;
       children = files.map(function(file) {
         return this.keyForTree(
           path.join(fullPath, file),
-          path.join(relativePath, file)
+          path.join(relativePath, file),
+          dir
         );
       }, this).filter(Boolean);
     }
