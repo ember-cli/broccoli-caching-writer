@@ -9,6 +9,7 @@ var CoreObject = require('core-object');
 var debugGenerator = require('debug');
 var Key = require('./key');
 var readCompatAPI = require('broccoli-read-compat');
+var canUseInputFiles = require('./can-use-input-files');
 
 var CachingWriter = {};
 
@@ -83,7 +84,7 @@ CachingWriter.rebuild = function () {
   for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
     dir = writer.inputPaths[i];
 
-    key = writer.keyForTree(dir);
+    key = writer.keyForTree(dir, undefined, dir);
     lastKey = writer._lastKeys[i];
     lastKeys.push(key);
 
@@ -156,7 +157,7 @@ CachingWriter.shouldBeIgnored = function (fullPath) {
   return (this._shouldBeIgnoredCache[fullPath] = false);
 };
 
-CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
+CachingWriter.keyForTree = function (fullPath, initialRelativePath, dir) {
   var relativePath = initialRelativePath || '.';
   var stats;
   var statKeys;
@@ -186,12 +187,23 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath) {
       console.warn(err.stack);
     }
 
-    if (files) {
+    if (canUseInputFiles(this.inputFiles)) {
+      children = this.inputFiles.map(function(file) {
+        return this.keyForTree(
+          path.join(dir, file),
+          file,
+          dir
+        );
+      }, this);
+      this._stats.files += children.length;
+      children = children.filter(Boolean);
+    } else if (files) {
       this._stats.files += files.length;
       children = files.map(function(file) {
         return this.keyForTree(
           path.join(fullPath, file),
-          path.join(relativePath, file)
+          path.join(relativePath, file),
+          dir
         );
       }, this).filter(Boolean);
     }

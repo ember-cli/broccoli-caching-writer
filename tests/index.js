@@ -482,3 +482,39 @@ describe('broccoli-caching-writer', function(){
     });
   })
 });
+
+var canUseInputFiles = require('../can-use-input-files');
+
+describe('can-use-input-files', function(){
+  it('is false for no input', function() {
+    expect(canUseInputFiles()).to.eql(false);
+  });
+
+  it('is false for non array input', function() {
+    expect(canUseInputFiles({})).to.eql(false);
+    expect(canUseInputFiles({length: 1})).to.eql(false);
+    expect(canUseInputFiles(true)).to.eql(false);
+    expect(canUseInputFiles(false)).to.eql(false);
+    expect(canUseInputFiles('')).to.eql(false);
+    expect(canUseInputFiles('asdf')).to.eql(false);
+  });
+
+  it('is true for array input', function() {
+    expect(canUseInputFiles([])).to.eql(true);
+    expect(canUseInputFiles([1])).to.eql(true);
+  });
+
+  it('true for non glob entries', function() {
+    expect(canUseInputFiles(['foo'])).to.eql(true);
+    expect(canUseInputFiles(['foo', 'bar'])).to.eql(true);
+    expect(canUseInputFiles(['foo/bar', 'bar/baz'])).to.eql(true);
+    expect(canUseInputFiles(['foo/bar.js', 'bar/baz-apple'])).to.eql(true);
+  });
+
+  it('false for glob entries', function() {
+    expect(canUseInputFiles(['f*oo'])).to.eql(false);
+    expect(canUseInputFiles(['foo', 'bar*'])).to.eql(false);
+    expect(canUseInputFiles(['foo/bar}', 'bar{baz'])).to.eql(false);
+    expect(canUseInputFiles(['foo{bar.js', 'bar}baz{apple'])).to.eql(false);
+  });
+});
