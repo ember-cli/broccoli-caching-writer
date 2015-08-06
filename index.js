@@ -92,6 +92,7 @@ CachingWriter.rebuild = function () {
     }
   }
 
+  this._stats.inputPaths = writer.inputPaths;
   this._debug('rebuild %o in %dms', this._stats, new Date() - start);
   this._resetStats();
 
