@@ -28,8 +28,9 @@
     "symlink-or-copy": "^1.0.0"
   },
   "devDependencies": {
-    "mocha": "~1.18.2",
     "broccoli": "^0.13.0",
-    "expect.js": "^0.3.1"
+    "expect.js": "^0.3.1",
+    "mocha": "^2.2.5",
+    "mocha-jshint": "~2.2.3"
   }
 }

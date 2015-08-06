@@ -210,20 +210,20 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath, dir) {
 CachingWriter.listFiles = function() {
   function listFiles(keys, files) {
     for (var i=0; i< keys.length; i++) {
-      var key = keys[i]
+      var key = keys[i];
       if (key.type === 'file') {
-        files.push(key.fullPath)
+        files.push(key.fullPath);
       } else {
         var children = key.children;
         if(children && children.length > 0) {
-          listFiles(children, files)
+          listFiles(children, files);
         }
       }
     }
-    return files
+    return files;
   }
-  return listFiles(this._lastKeys, [])
-}
+  return listFiles(this._lastKeys, []);
+};
 
 var CachingWriterClass = CoreObject.extend(CachingWriter);
 

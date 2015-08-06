@@ -14,7 +14,7 @@ var CachingWriter = require('..');
 
 var builder;
 
-describe('broccoli-caching-writer', function(){
+describe('broccoli-caching-writer', function() {
   var sourcePath = 'tests/fixtures/sample-project';
   var secondaryPath = 'tests/fixtures/other-tree';
 
@@ -404,7 +404,7 @@ describe('broccoli-caching-writer', function(){
       tree = new CachingWriter([sourcePath]);
       tree.updateCache = function(srcDir, destDir){
         listFiles = this.listFiles();
-      }
+      };
     });
 
     it('returns an array of files keyed', function() {
@@ -414,37 +414,37 @@ describe('broccoli-caching-writer', function(){
           path.normalize('tests/fixtures/sample-project/core.js'),
           path.normalize('tests/fixtures/sample-project/main.js')
         ]);
-        expect(listFiles.length).to.equal(2)
+        expect(listFiles.length).to.equal(2);
       });
     });
 
     it('returns an array of files keyed including only those in the include filter', function() {
-      tree.filterFromCache.include = [ /core\.js$/ ]
+      tree.filterFromCache.include = [ /core\.js$/ ];
       builder = new broccoli.Builder(tree);
 
       return builder.build().then(function() {
         expect(listFiles).to.eql([
           path.normalize('tests/fixtures/sample-project/core.js')
         ]);
-        expect(listFiles.length).to.equal(1)
+        expect(listFiles.length).to.equal(1);
       });
     });
 
     it('returns an array of files keyed ignoring those in the exclude filter', function() {
-      tree.filterFromCache.exclude = [ /main\.js$/ ]
+      tree.filterFromCache.exclude = [ /main\.js$/ ];
       builder = new broccoli.Builder(tree);
 
       return builder.build().then(function() {
         expect(listFiles).to.eql([
           path.normalize('tests/fixtures/sample-project/core.js')
         ]);
-        expect(listFiles.length).to.equal(1)
+        expect(listFiles.length).to.equal(1);
       });
     });
 
     it('returns an array of files keyed both include & exclude filters', function() {
-      tree.filterFromCache.include = [ /\.js$/ ]
-      tree.filterFromCache.exclude = [ /core\.js$/ ]
+      tree.filterFromCache.include = [ /\.js$/ ];
+      tree.filterFromCache.exclude = [ /core\.js$/ ];
 
       builder = new broccoli.Builder(tree);
 
@@ -452,10 +452,10 @@ describe('broccoli-caching-writer', function(){
         expect(listFiles).to.eql([
           path.normalize('tests/fixtures/sample-project/main.js')
         ]);
-        expect(listFiles.length).to.equal(1)
+        expect(listFiles.length).to.equal(1);
       });
     });
-  })
+  });
 });
 
 var canUseInputFiles = require('../can-use-input-files');
