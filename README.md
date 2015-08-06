@@ -13,10 +13,9 @@ If you would prefer to perform your plugins work in a non-synchronous way, simpl
 
 ### `new CachingWriter(inputTrees, options)`
 
-`inputTrees` *{Array of Trees | Single Tree}*
+`inputTrees` *{Array of Trees}*
 
-Can either be a single tree, or an array of trees. If an array was specified, an array of source paths will be provided when
-calling `updateCache`.
+An array of input trees.
 
 #### Options
 

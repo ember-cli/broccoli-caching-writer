@@ -27,19 +27,10 @@ CachingWriter.init = function(inputTrees, options) {
     }
   }
 
-  if (!inputTrees) {
-    throw new Error('no inputTree was provided');
+  if (!Array.isArray(inputTrees)) {
+    throw new Error('Expected an array of inputTrees, got ' + inputTrees);
   }
-
-  if (Array.isArray(inputTrees)) {
-    if (this.enforceSingleInputTree) {
-      throw new Error('You passed an array of input trees, but only a single tree is allowed.');
-    }
-
-    this.inputTrees = inputTrees;
-  } else {
-    this.inputTrees = [inputTrees];
-  }
+  this.inputTrees = inputTrees;
 
   if (this.filterFromCache === undefined) {
     this.filterFromCache = {};
@@ -61,8 +52,6 @@ CachingWriter.init = function(inputTrees, options) {
     throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.');
   }
 };
-
-CachingWriter.enforceSingleInputTree = false;
 
 CachingWriter.debug = function() {
   return this._debug || (this._debug = debugGenerator('broccoli-caching-writer:' + (this.constructorDescription || this.constructor.name) + ' > [' + this.description + ']'));
@@ -98,13 +87,11 @@ CachingWriter.rebuild = function () {
   this._resetStats();
 
   if (invalidateCache) {
-    var updateCacheSrcArg = writer.enforceSingleInputTree ? writer.inputPaths[0] : writer.inputPaths;
-
     writer._lastKeys = lastKeys;
 
     updateCacheResult = rimraf(writer.cachePath).then(function () {
       fs.mkdirSync(writer.cachePath);
-      return writer.updateCache(updateCacheSrcArg, writer.cachePath);
+      return writer.updateCache(writer.inputPaths, writer.cachePath);
     });
 
   }
@@ -115,7 +102,7 @@ CachingWriter.rebuild = function () {
   });
 };
 
-CachingWriter.updateCache = function (srcDir, destDir) {
+CachingWriter.updateCache = function (srcDirs, destDir) {
   throw new Error('You must implement updateCache.');
 };
 

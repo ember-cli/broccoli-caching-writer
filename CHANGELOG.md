@@ -1,5 +1,7 @@
 ## master
 
+* Remove `enforceSingleInputTree` option; we now always expect an array
+
 ## 1.0.0
 
 * Bump without changes
