@@ -1,18 +1,52 @@
-/* jshint node: true */
-/* global it: true, describe: true, afterEach, beforeEach */
-
 'use strict';
 
 var fs = require('fs');
 var path = require('path');
-var expect = require('expect.js');
-var RSVP = require('rsvp');
-var rimraf = require('rimraf');
-var root = process.cwd();
+var chai = require('chai'), expect = chai.expect;
+var chaiAsPromised = require('chai-as-promised');
+chai.use(chaiAsPromised);
 var broccoli = require('broccoli');
 var CachingWriter = require('..');
 
-var builder;
+var builder, cachingWriter, buildCount;
+
+function setupCachingWriter(inputNodes, options, buildCallback) {
+  if (!buildCallback) buildCallback = function() { };
+  buildCount = 0;
+  cachingWriter = new CachingWriter(inputNodes, options);
+  cachingWriter.build = function() {
+    buildCount++;
+    return buildCallback.call(this);
+  };
+  builder = new broccoli.Builder(cachingWriter);
+}
+
+function build(expectRebuild) {
+  return builder.build()
+    .then(function(hash) {
+      return hash.directory;
+    });
+}
+
+function expectRebuild() {
+  var oldBuildCount = buildCount;
+  return build()
+    .then(function(outputPath) { // cannot use finally - expect failure would override previous error
+      expect(buildCount).to.equal(oldBuildCount + 1,
+        'expected rebuild to be triggered');
+      return outputPath;
+    });
+}
+
+function expectNoRebuild() {
+  var oldBuildCount = buildCount;
+  return build()
+    .then(function(outputPath) { // cannot use finally - expect failure would override previous error
+      expect(buildCount).to.equal(oldBuildCount,
+        'expected rebuild not to be triggered');
+      return outputPath;
+    });
+}
 
 describe('broccoli-caching-writer', function() {
   var sourcePath = 'tests/fixtures/sample-project';
@@ -36,381 +70,250 @@ describe('broccoli-caching-writer', function() {
     }
   });
 
-  function build() {
-    return builder.build();
-  }
+  describe('cache invalidation', function() {
+    it('calls build once at the beginning, and again only when input is changed', function() {
+      setupCachingWriter([sourcePath, secondaryPath], {});
 
-  function buildInSeries(count) {
-    var promise = RSVP.Promise.resolve();
-
-    for (var i = 0; i < count; i++) {
-      promise = promise.then(build);
-    }
-
-    return promise;
-  }
-
-  describe('write', function() {
-    it('calls updateCache when there is no cache', function(){
-      var updateCacheCalled = false;
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function() {
-          updateCacheCalled = true;
-        }
-      });
-
-      builder = new broccoli.Builder(tree);
-
-      return builder.build().finally(function() {
-        expect(updateCacheCalled).to.be.ok();
-      });
+      return expectRebuild()
+        .then(expectNoRebuild)
+        .then(expectNoRebuild)
+        .then(function() { fs.writeFileSync(dummyChangedFile, 'bergh'); })
+        .then(expectRebuild)
+        .then(expectNoRebuild)
+        .then(function() { fs.writeFileSync(secondaryPath + '/foo-baz.js', 'bergh'); })
+        .then(expectRebuild)
+        .then(expectNoRebuild);
     });
 
-    it('is provided a source and destination directory', function(){
-      var updateCacheCalled = false;
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function(srcDirs, destDir) {
-          expect(fs.statSync(srcDirs[0]).isDirectory()).to.be.ok();
-          expect(fs.statSync(destDir).isDirectory()).to.be.ok();
-        }
-      });
+    it('calls build again if existing file is changed', function() {
+      setupCachingWriter([sourcePath], {});
 
-      builder = new broccoli.Builder(tree);
-      return builder.build();
+      return expectRebuild()
+        .then(function() { fs.writeFileSync(existingJSFile, '"YIPPIE"\n"KI-YAY!"\n'); })
+        .then(expectRebuild)
+        .then(expectNoRebuild)
+        .finally(function() { fs.writeFileSync(existingJSFile, '"YIPPIE"\n'); });
     });
 
-    it('only calls updateCache once if input is not changing', function(){
-      var updateCacheCount = 0;
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function() {
-          updateCacheCount++;
-        }
-      });
+    it('builds once with no input nodes', function() {
+      setupCachingWriter([], {});
 
-      builder = new broccoli.Builder(tree);
-
-      return buildInSeries(3)
-        .then(function() {
-          expect(updateCacheCount).to.equal(1);
-        });
+      return expectRebuild()
+        .then(expectNoRebuild());
     });
 
-    it('calls updateCache again if input is changed', function(){
-      var updateCacheCount = 0;
-
-      var tree = new CachingWriter([sourcePath, secondaryPath], {
-        updateCache: function() {
-          updateCacheCount++;
-        }
-      });
-
-      builder = new broccoli.Builder(tree);
-
-      return builder.build()
-        .finally(function() {
-          expect(updateCacheCount).to.equal(1);
-        })
-        .then(function() {
-          fs.writeFileSync(dummyChangedFile, 'bergh');
-
-          return buildInSeries(3);
-        })
-        .finally(function() {
-          expect(updateCacheCount).to.equal(2);
-        })
-        .then(function() {
-          fs.writeFileSync(secondaryPath + '/foo-baz.js', 'bergh');
-
-          return buildInSeries(3);
-        })
-        .finally(function() {
-          expect(updateCacheCount).to.equal(3);
-        });
-    });
-
-    it('calls updateCache again if existing file is changed', function(){
-      var updateCacheCount = 0;
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function() {
-          updateCacheCount++;
-        }
-      });
-
-      builder = new broccoli.Builder(tree);
-
-      return builder.build()
-        .finally(function() {
-          expect(updateCacheCount).to.equal(1);
-        })
-        .then(function() {
-          fs.writeFileSync(existingJSFile, '"YIPPIE"\n"KI-YAY!"\n');
-
-          return buildInSeries(3);
-        })
-        .finally(function() {
-          fs.writeFileSync(existingJSFile, '"YIPPIE"\n');
-          expect(updateCacheCount).to.equal(2);
-        });
-    });
-
-    it('does not call updateCache again if input is changed but filtered from cache (via exclude)', function(){
-      var updateCacheCount = 0;
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function() {
-          updateCacheCount++;
-        },
+    it('does not call build again if input is changed but filtered from cache (via exclude)', function() {
+      setupCachingWriter([sourcePath], {
         filterFromCache: {
           exclude: [/.*\.txt$/]
         }
       });
 
-      builder = new broccoli.Builder(tree);
-
-      return builder.build()
-        .finally(function() {
-          expect(updateCacheCount).to.equal(1);
-        })
-        .then(function() {
-          fs.writeFileSync(dummyChangedFile, 'bergh');
-
-          return buildInSeries(3);
-        })
-        .finally(function() {
-          expect(updateCacheCount).to.equal(1);
-        });
+      return expectRebuild()
+        .then(function() { fs.writeFileSync(dummyChangedFile, 'bergh'); })
+        .then(expectNoRebuild);
     });
 
-    it('does not call updateCache again if input is changed but filtered from cache (via include)', function(){
-      var updateCacheCount = 0;
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function() {
-          updateCacheCount++;
-        },
+    it('does not call updateCache again if input is changed but filtered from cache (via include)', function() {
+      setupCachingWriter([sourcePath], {
         filterFromCache: {
           include: [/.*\.js$/]
         }
       });
 
-      builder = new broccoli.Builder(tree);
-
-      return builder.build()
-        .finally(function() {
-          expect(updateCacheCount).to.equal(1);
-        })
-        .then(function() {
-          fs.writeFileSync(dummyChangedFile, 'bergh');
-
-          return buildInSeries(4);
-        })
-        .finally(function() {
-          expect(updateCacheCount).to.equal(1);
-        });
+      return expectRebuild()
+        .then(function() { fs.writeFileSync(dummyChangedFile, 'bergh'); })
+        .then(expectNoRebuild);
     });
 
-    it('does call updateCache again if input is changed is included in the cache filter', function(){
-      var updateCacheCount = 0;
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function() {
-          updateCacheCount++;
-        },
+    it('does call build again if input is changed is included in the cache filter', function() {
+      setupCachingWriter([sourcePath], {
         filterFromCache: {
           include: [/.*\.js$/]
         }
       });
 
-      builder = new broccoli.Builder(tree);
-
-      return builder.build()
-        .finally(function() {
-          expect(updateCacheCount).to.equal(1);
-        })
-        .then(function() {
-          fs.writeFileSync(dummyJSChangedFile, 'bergh');
-
-          return buildInSeries(3);
-        })
-        .finally(function() {
-          expect(updateCacheCount).to.equal(2);
-        });
+      return expectRebuild()
+        .then(function() { fs.writeFileSync(dummyJSChangedFile, 'bergh'); })
+        .then(expectRebuild);
     });
   });
 
-  describe('updateCache', function() {
-    it('provides array of paths if array of sourceTrees was provided', function() {
-      var tree = new CachingWriter([sourcePath, secondaryPath], {
-        updateCache: function(srcDirs, destDir) {
-          expect(fs.readFileSync(srcDirs[0] + '/core.js', {
-            encoding: 'utf8'
-          })).to.contain('"YIPPIE"');
-          expect(fs.readFileSync(srcDirs[1] + '/bar.js', {
-            encoding: 'utf8'
-          })).to.contain('"BLAMMO!"');
-
-          fs.writeFileSync(destDir + '/something-cool.js', 'zomg blammo', {
-            encoding: 'utf8'
-          });
-        }
-      });
-
-      builder = new broccoli.Builder(tree);
-      return builder.build().then(function(result) {
-        var dir = result.directory;
-
-        expect(fs.readFileSync(dir + '/something-cool.js', {
+  describe('build', function() {
+    it('can read from inputPaths', function() {
+      setupCachingWriter([sourcePath, secondaryPath], {}, function() {
+        expect(fs.readFileSync(this.inputPaths[0] + '/core.js', {
           encoding: 'utf8'
-        })).to.equal('zomg blammo');
+        })).to.contain('"YIPPIE"');
+        expect(fs.readFileSync(this.inputPaths[1] + '/bar.js', {
+          encoding: 'utf8'
+        })).to.contain('"BLAMMO!"');
       });
+
+      return expectRebuild();
     });
 
-    it('can write files to destDir, and they will be in the final output', function(){
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function(srcDir, destDir) {
-          fs.writeFileSync(destDir + '/something-cool.js', 'zomg blammo', {encoding: 'utf8'});
-        }
+    it('can write to outputPath', function() {
+      setupCachingWriter([sourcePath], {}, function() {
+        fs.writeFileSync(this.outputPath + '/something-cool.js', 'zomg blammo', {encoding: 'utf8'});
       });
 
-      builder = new broccoli.Builder(tree);
-      return builder.build().then(function(result) {
-        var dir = result.directory;
-        expect(fs.readFileSync(dir + '/something-cool.js', {
-          encoding: 'utf8'
-        })).to.equal('zomg blammo');
-      });
+      return expectRebuild()
+        .then(function(outputPath) {
+          expect(fs.readFileSync(outputPath + '/something-cool.js', {
+            encoding: 'utf8'
+          })).to.equal('zomg blammo');
+        });
     });
 
     it('throws an error if not overriden', function(){
-      var tree = new CachingWriter([sourcePath]);
+      setupCachingWriter([sourcePath], {});
+      delete cachingWriter.build;
 
-      builder = new broccoli.Builder(tree);
-      return builder.build()
-        .catch(function(reason) {
-          expect(reason.message).to.equal('You must implement updateCache.');
-        });
+      return expect(build()).to.be.rejectedWith(/Plugin subclasses must implement/);
     });
 
     it('can return a promise that is resolved', function(){
       var thenCalled = false;
-      var tree = new CachingWriter([sourcePath], {
-        updateCache: function(srcDir, destDir) {
-          return {then: function(callback) {
-            thenCalled = true;
-            callback();
-          }};
-        }
+      setupCachingWriter([sourcePath], {}, function() {
+        return {then: function(callback) {
+          thenCalled = true;
+          callback();
+        }};
       });
 
-      builder = new broccoli.Builder(tree);
-      return builder.build().then(function() {
-        expect(thenCalled).to.be.ok();
+      return expectRebuild().then(function() {
+        expect(thenCalled).to.be.ok;
       });
     });
   });
 
-  describe('arguments', function() {
-    it('throws exception when no input tree is provided', function() {
+  describe('constructor', function() {
+    it('throws exception when no input nodes are provided', function() {
       expect(function() {
         new CachingWriter();
-      }).to.throwException(/Expected an array/);
+      }).to.throw(/Expected an array/);
     });
 
     it('throws exception when something other than an array is passed', function() {
       expect(function() {
-        var tree = new CachingWriter('not/an/array', {
-          updateCache: function() { }
+        new CachingWriter('not/an/array');
+      }).to.throw(/Expected an array/);
+    });
+  });
+
+  describe('persistentOutput behavior mimics broccoli-plugin', function() {
+    function buildOnce() {
+      /*jshint validthis:true */
+      if (!this.builtOnce) {
+        this.builtOnce = true;
+        fs.writeFileSync(path.join(this.outputPath, 'foo.txt'), 'yay');
+      }
+    }
+
+    function isEmptied() {
+      return expectRebuild()
+        .then(function() { fs.writeFileSync(dummyChangedFile, 'force rebuild'); })
+        .then(expectRebuild)
+        .then(function(outputPath) {
+          return !fs.existsSync(path.join(outputPath, 'foo.txt'));
         });
-      }).throwException(/Expected an array/);
+    }
+
+    it('empties the output directory by default', function() {
+      setupCachingWriter([sourcePath], {}, buildOnce);
+      return expect(isEmptied()).to.be.eventually.true;
+    });
+
+    it('does not empty the output directory if persistentOutput is true', function() {
+      setupCachingWriter([sourcePath], { persistentOutput: true }, buildOnce);
+      return expect(isEmptied()).to.be.eventually.false;
     });
   });
 
   describe('shouldBeIgnored', function() {
-    var tree;
-
-    beforeEach(function() {
-      tree = new CachingWriter([sourcePath]);
-    });
-
     it('returns true if the path is included in an exclude filter', function() {
-      tree.filterFromCache.exclude = [ /.foo$/, /.bar$/ ];
+      var node = new CachingWriter([sourcePath], { filterFromCache: {
+        exclude: [ /.foo$/, /.bar$/ ]
+      }});
 
-      expect(tree.shouldBeIgnored('blah/blah/blah.foo')).to.be.ok();
-      expect(tree.shouldBeIgnored('blah/blah/blah.bar')).to.be.ok();
-      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
+      expect(node.shouldBeIgnored('blah/blah/blah.foo')).to.be.ok;
+      expect(node.shouldBeIgnored('blah/blah/blah.bar')).to.be.ok;
+      expect(node.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok;
     });
 
     it('returns false if the path is included in an include filter', function() {
-      tree.filterFromCache.include = [ /.foo$/, /.bar$/ ];
+      var node = new CachingWriter([sourcePath], { filterFromCache: {
+        include: [ /.foo$/, /.bar$/ ]
+      }});
 
-      expect(tree.shouldBeIgnored('blah/blah/blah.foo')).to.not.be.ok();
-      expect(tree.shouldBeIgnored('blah/blah/blah.bar')).to.not.be.ok();
+      expect(node.shouldBeIgnored('blah/blah/blah.foo')).to.not.be.ok;
+      expect(node.shouldBeIgnored('blah/blah/blah.bar')).to.not.be.ok;
     });
 
     it('returns true if the path is not included in an include filter', function() {
-      tree.filterFromCache.include = [ /.foo$/, /.bar$/ ];
+      var node = new CachingWriter([sourcePath], { filterFromCache: {
+        include: [ /.foo$/, /.bar$/ ]
+      }});
 
-      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.be.ok();
+      expect(node.shouldBeIgnored('blah/blah/blah.baz')).to.be.ok;
     });
 
     it('returns false if no patterns were used', function() {
-      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
+      var node = new CachingWriter([sourcePath], {});
+
+      expect(node.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok;
     });
 
     it('uses a cache to ensure we do not recalculate the filtering on subsequent attempts', function() {
-      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
+      var node = new CachingWriter([sourcePath], {});
+
+      expect(node.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok;
 
       // changing the filter mid-run should have no result on
       // previously calculated paths
-      tree.filterFromCache.include = [ /.foo$/, /.bar$/ ];
+      node._filterFromCache.include = [ /.foo$/, /.bar$/ ];
 
-      expect(tree.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok();
+      expect(node.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok;
     });
   });
 
   describe('listFiles', function() {
-    var tree, listFiles;
+    var listFiles;
 
-    beforeEach(function() {
-      tree = new CachingWriter([sourcePath]);
-      tree.updateCache = function(srcDirs, destDir){
+    function getListFilesFor(filterFromCache) {
+      setupCachingWriter([sourcePath], { filterFromCache: filterFromCache }, function() {
+        var writer = this;
         listFiles = this.listFiles().map(function(p) {
-          return path.relative(srcDirs[0], p);
+          return path.relative(writer.inputPaths[0], p);
         });
-      };
-    });
+      });
+      return expectRebuild().then(function() {
+        return listFiles;
+      });
+    }
 
     it('returns an array of files keyed', function() {
-      builder = new broccoli.Builder(tree);
-      return builder.build().then(function() {
-        expect(listFiles).to.eql(['core.js', 'main.js']);
-      });
+      return expect(getListFilesFor({})).to.eventually.deep.equal(['core.js', 'main.js']);
     });
 
     it('returns an array of files keyed including only those in the include filter', function() {
-      tree.filterFromCache.include = [ /core\.js$/ ];
-      builder = new broccoli.Builder(tree);
-
-      return builder.build().then(function() {
-        expect(listFiles).to.eql(['core.js']);
-      });
+      return expect(getListFilesFor({
+        include: [ /core\.js$/ ]
+      })).to.eventually.deep.equal(['core.js']);
     });
 
     it('returns an array of files keyed ignoring those in the exclude filter', function() {
-      tree.filterFromCache.exclude = [ /main\.js$/ ];
-      builder = new broccoli.Builder(tree);
-
-      return builder.build().then(function() {
-        expect(listFiles).to.eql(['core.js']);
-      });
+      return expect(getListFilesFor({
+        exclude: [ /main\.js$/ ]
+      })).to.eventually.deep.equal(['core.js']);
     });
 
     it('returns an array of files keyed both include & exclude filters', function() {
-      tree.filterFromCache.include = [ /\.js$/ ];
-      tree.filterFromCache.exclude = [ /core\.js$/ ];
-
-      builder = new broccoli.Builder(tree);
-
-      return builder.build().then(function() {
-        expect(listFiles).to.eql(['main.js']);
-      });
+      return expect(getListFilesFor({
+        include: [ /\.js$/ ],
+        exclude: [ /core\.js$/ ]
+      })).to.eventually.deep.equal(['main.js']);
     });
   });
 });

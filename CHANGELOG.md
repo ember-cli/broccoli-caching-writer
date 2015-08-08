@@ -1,6 +1,14 @@
 ## master
 
-* Derive from broccoli-plugin base class; stop deriving from CoreObject
+* Derive from broccoli-plugin base class, and expose same interface. In particular:
+
+    * `updateCache(srcDirs, destDir)` becomes `build()`
+    * We no longer derive from CoreObject
+    * We gain the `name`, `annotation`, and `persistentOutput` options
+    * `options` no longer auto-assigns to `this`; unknown options are ignored
+    * `filterFromCache` must be passed in through `options`, and cannot be set on
+      the prototype/instance
+
 * Remove `enforceSingleInputTree` option; we now always expect an array
 
 ## 1.0.0

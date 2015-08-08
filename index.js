@@ -1,3 +1,5 @@
+'use strict';
+
 var fs = require('fs');
 var path = require('path');
 var RSVP = require('rsvp');
@@ -12,48 +14,45 @@ var canUseInputFiles = require('./can-use-input-files');
 
 CachingWriter.prototype = Object.create(Plugin.prototype);
 CachingWriter.prototype.constructor = CachingWriter;
-function CachingWriter (inputTrees, options) {
-  if (!Array.isArray(inputTrees)) {
-    throw new Error('Expected an array of inputTrees, got ' + inputTrees);
-  }
-  Plugin.call(this, inputTrees);
+function CachingWriter (inputNodes, options) {
+  options = options || {};
 
-  this._lastKeys = [];
+  Plugin.call(this, inputNodes, {
+    name: options.name,
+    annotation: options.annotation,
+    persistentOutput: true
+  });
+
+  this._cachingWriterPersistentOutput = !!options.persistentOutput;
+
+  this._lastKeys = null;
   this._shouldBeIgnoredCache = Object.create(null);
-  this.constructorDescription = this.description; // TODO: why do we smash this?
   this._resetStats();
 
-  if (options) {
-    for (var key in options) {
-      if (options.hasOwnProperty(key)) {
-        this[key] = options[key];
-      }
-    }
+  this._filterFromCache = options.filterFromCache || {};
+
+  if (this._filterFromCache.include === undefined) {
+    this._filterFromCache.include = [];
   }
 
-  if (this.filterFromCache === undefined) {
-    this.filterFromCache = {};
+  if (this._filterFromCache.exclude === undefined) {
+    this._filterFromCache.exclude = [];
   }
 
-  if (this.filterFromCache.include === undefined) {
-    this.filterFromCache.include = [];
-  }
-
-  if (this.filterFromCache.exclude === undefined) {
-    this.filterFromCache.exclude = [];
-  }
-
-  if (!Array.isArray(this.filterFromCache.include)) {
+  if (!Array.isArray(this._filterFromCache.include)) {
     throw new Error('Invalid filterFromCache.include option, it must be an array or undefined.');
   }
 
-  if (!Array.isArray(this.filterFromCache.exclude)) {
+  if (!Array.isArray(this._filterFromCache.exclude)) {
     throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.');
   }
 }
 
 CachingWriter.prototype.debug = function() {
-  return this._debug || (this._debug = debugGenerator('broccoli-caching-writer:' + (this.constructorDescription || this.constructor.name) + ' > [' + this.description + ']'));
+  return this._debug || (this._debug = debugGenerator(
+    'broccoli-caching-writer:' +
+    this._name +
+    (this._annotation ? (' > [' + this._annotation + ']') : '')));
 };
 
 CachingWriter.prototype._resetStats = function() {
@@ -63,19 +62,29 @@ CachingWriter.prototype._resetStats = function() {
   };
 };
 
-CachingWriter.prototype.build = function () {
+CachingWriter.prototype.getCallbackObject = function() {
+  return { build: this._conditionalBuild.bind(this) };
+};
+
+CachingWriter.prototype._conditionalBuild = function () {
   var writer = this;
   var start = new Date();
 
   var invalidateCache = false;
-  var key, dir, updateCacheResult;
+  var key, dir;
   var lastKeys = [];
+
+  if (!writer._lastKeys) {
+    writer._lastKeys = [];
+    // Force initial build even if inputNodes is []
+    invalidateCache = true;
+  }
 
   for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
     dir = writer.inputPaths[i];
 
     key = writer.keyForTree(dir, undefined, dir);
-    lastKey = writer._lastKeys[i];
+    var lastKey = writer._lastKeys[i];
     lastKeys.push(key);
 
     if (!invalidateCache /* short circuit */ && !key.equal(lastKey)) {
@@ -84,27 +93,24 @@ CachingWriter.prototype.build = function () {
   }
 
   this._stats.inputPaths = writer.inputPaths;
-  this._debug('rebuild %o in %dms', this._stats, new Date() - start);
+  this.debug()('rebuild %o in %dms', this._stats, new Date() - start);
   this._resetStats();
 
   if (invalidateCache) {
     writer._lastKeys = lastKeys;
 
-    updateCacheResult = rimraf(writer.cachePath).then(function () {
-      fs.mkdirSync(writer.cachePath);
-      return writer.updateCache(writer.inputPaths, writer.cachePath);
+    var promise = RSVP.Promise.resolve();
+    if (!this._cachingWriterPersistentOutput) {
+      promise = promise.then(function() {
+        return rimraf(writer.outputPath);
+      }).then(function() {
+        fs.mkdirSync(writer.outputPath);
+      });
+    }
+    return promise.then(function() {
+      return writer.build();
     });
-
   }
-
-  return RSVP.Promise.resolve(updateCacheResult).then(function () {
-    fs.rmdirSync(writer.outputPath);
-    symlinkOrCopy.sync(writer.cachePath, writer.outputPath);
-  });
-};
-
-CachingWriter.prototype.updateCache = function (srcDirs, destDir) {
-  throw new Error('You must implement updateCache.');
 };
 
 // Takes in a path and { include, exclude }. Tests the path using regular expressions and
@@ -115,8 +121,8 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
     return this._shouldBeIgnoredCache[fullPath];
   }
 
-  var excludePatterns = this.filterFromCache.exclude;
-  var includePatterns = this.filterFromCache.include;
+  var excludePatterns = this._filterFromCache.exclude;
+  var includePatterns = this._filterFromCache.include;
   var i = null;
 
   // Check exclude patterns
