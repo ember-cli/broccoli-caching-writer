@@ -30,6 +30,7 @@ function CachingWriter (inputNodes, options) {
   this._resetStats();
 
   this._filterFromCache = options.filterFromCache || {};
+  this._inputFiles = options.inputFiles || {};
 
   if (this._filterFromCache.include === undefined) {
     this._filterFromCache.include = [];
@@ -181,8 +182,8 @@ CachingWriter.prototype.keyForTree = function (fullPath, initialRelativePath, di
       console.warn(err.stack);
     }
 
-    if (canUseInputFiles(this.inputFiles)) {
-      children = this.inputFiles.map(function(file) {
+    if (canUseInputFiles(this._inputFiles)) {
+      children = this._inputFiles.map(function(file) {
         return this.keyForTree(
           path.join(dir, file),
           file,
