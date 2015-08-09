@@ -6,8 +6,10 @@
     * We no longer derive from CoreObject
     * We gain the `name`, `annotation`, and `persistentOutput` options
     * `options` no longer auto-assigns to `this`; unknown options are ignored
-    * `filterFromCache` must be passed in through `options`, and cannot be set on
-      the prototype/instance
+
+* `filterFromCache.include`/`filterFromCache.exclude` are now called
+  `cacheInclude`/`cacheExclude`; they must now be passed in through
+  `options`, and can no longer be set on the prototype/instance
 
 * Remove `enforceSingleInputTree` option; we now always expect an array
 

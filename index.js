@@ -29,23 +29,16 @@ function CachingWriter (inputNodes, options) {
   this._shouldBeIgnoredCache = Object.create(null);
   this._resetStats();
 
-  this._filterFromCache = options.filterFromCache || {};
+  this._cacheInclude = options.cacheInclude || [];
+  this._cacheExclude = options.cacheExclude || [];
   this._inputFiles = options.inputFiles || {};
 
-  if (this._filterFromCache.include === undefined) {
-    this._filterFromCache.include = [];
+  if (!Array.isArray(this._cacheInclude)) {
+    throw new Error('Invalid cacheInclude option, it must be an array or undefined.');
   }
 
-  if (this._filterFromCache.exclude === undefined) {
-    this._filterFromCache.exclude = [];
-  }
-
-  if (!Array.isArray(this._filterFromCache.include)) {
-    throw new Error('Invalid filterFromCache.include option, it must be an array or undefined.');
-  }
-
-  if (!Array.isArray(this._filterFromCache.exclude)) {
-    throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.');
+  if (!Array.isArray(this._cacheExclude)) {
+    throw new Error('Invalid cacheExclude option, it must be an array or undefined.');
   }
 }
 
@@ -122,8 +115,8 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
     return this._shouldBeIgnoredCache[fullPath];
   }
 
-  var excludePatterns = this._filterFromCache.exclude;
-  var includePatterns = this._filterFromCache.include;
+  var excludePatterns = this._cacheExclude;
+  var includePatterns = this._cacheInclude;
   var i = null;
 
   // Check exclude patterns

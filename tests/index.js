@@ -102,11 +102,9 @@ describe('broccoli-caching-writer', function() {
         .then(expectNoRebuild());
     });
 
-    it('does not call build again if input is changed but filtered from cache (via exclude)', function() {
+    it('does not call build again if input is changed but filtered from cache (via cacheExclude)', function() {
       setupCachingWriter([sourcePath], {
-        filterFromCache: {
-          exclude: [/.*\.txt$/]
-        }
+        cacheExclude: [/.*\.txt$/]
       });
 
       return expectRebuild()
@@ -114,11 +112,9 @@ describe('broccoli-caching-writer', function() {
         .then(expectNoRebuild);
     });
 
-    it('does not call updateCache again if input is changed but filtered from cache (via include)', function() {
+    it('does not call updateCache again if input is changed but filtered from cache (via cacheInclude)', function() {
       setupCachingWriter([sourcePath], {
-        filterFromCache: {
-          include: [/.*\.js$/]
-        }
+        cacheInclude: [/.*\.js$/]
       });
 
       return expectRebuild()
@@ -128,9 +124,7 @@ describe('broccoli-caching-writer', function() {
 
     it('does call build again if input is changed is included in the cache filter', function() {
       setupCachingWriter([sourcePath], {
-        filterFromCache: {
-          include: [/.*\.js$/]
-        }
+        cacheInclude: [/.*\.js$/]
       });
 
       return expectRebuild()
@@ -233,9 +227,9 @@ describe('broccoli-caching-writer', function() {
 
   describe('shouldBeIgnored', function() {
     it('returns true if the path is included in an exclude filter', function() {
-      var node = new CachingWriter([sourcePath], { filterFromCache: {
-        exclude: [ /.foo$/, /.bar$/ ]
-      }});
+      var node = new CachingWriter([sourcePath], {
+        cacheExclude: [ /.foo$/, /.bar$/ ]
+      });
 
       expect(node.shouldBeIgnored('blah/blah/blah.foo')).to.be.ok;
       expect(node.shouldBeIgnored('blah/blah/blah.bar')).to.be.ok;
@@ -243,18 +237,18 @@ describe('broccoli-caching-writer', function() {
     });
 
     it('returns false if the path is included in an include filter', function() {
-      var node = new CachingWriter([sourcePath], { filterFromCache: {
-        include: [ /.foo$/, /.bar$/ ]
-      }});
+      var node = new CachingWriter([sourcePath], {
+        cacheInclude: [ /.foo$/, /.bar$/ ]
+      });
 
       expect(node.shouldBeIgnored('blah/blah/blah.foo')).to.not.be.ok;
       expect(node.shouldBeIgnored('blah/blah/blah.bar')).to.not.be.ok;
     });
 
     it('returns true if the path is not included in an include filter', function() {
-      var node = new CachingWriter([sourcePath], { filterFromCache: {
-        include: [ /.foo$/, /.bar$/ ]
-      }});
+      var node = new CachingWriter([sourcePath], {
+        cacheInclude: [ /.foo$/, /.bar$/ ]
+      });
 
       expect(node.shouldBeIgnored('blah/blah/blah.baz')).to.be.ok;
     });
@@ -272,7 +266,7 @@ describe('broccoli-caching-writer', function() {
 
       // changing the filter mid-run should have no result on
       // previously calculated paths
-      node._filterFromCache.include = [ /.foo$/, /.bar$/ ];
+      node._cacheInclude = [ /.foo$/, /.bar$/ ];
 
       expect(node.shouldBeIgnored('blah/blah/blah.baz')).to.not.be.ok;
     });
@@ -281,8 +275,8 @@ describe('broccoli-caching-writer', function() {
   describe('listFiles', function() {
     var listFiles;
 
-    function getListFilesFor(filterFromCache) {
-      setupCachingWriter([sourcePath], { filterFromCache: filterFromCache }, function() {
+    function getListFilesFor(options) {
+      setupCachingWriter([sourcePath], options, function() {
         var writer = this;
         listFiles = this.listFiles().map(function(p) {
           return path.relative(writer.inputPaths[0], p);
@@ -299,20 +293,20 @@ describe('broccoli-caching-writer', function() {
 
     it('returns an array of files keyed including only those in the include filter', function() {
       return expect(getListFilesFor({
-        include: [ /core\.js$/ ]
+        cacheInclude: [ /core\.js$/ ]
       })).to.eventually.deep.equal(['core.js']);
     });
 
     it('returns an array of files keyed ignoring those in the exclude filter', function() {
       return expect(getListFilesFor({
-        exclude: [ /main\.js$/ ]
+        cacheExclude: [ /main\.js$/ ]
       })).to.eventually.deep.equal(['core.js']);
     });
 
     it('returns an array of files keyed both include & exclude filters', function() {
       return expect(getListFilesFor({
-        include: [ /\.js$/ ],
-        exclude: [ /core\.js$/ ]
+        cacheInclude: [ /\.js$/ ],
+        cacheExclude: [ /core\.js$/ ]
       })).to.eventually.deep.equal(['main.js']);
     });
   });

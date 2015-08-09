@@ -57,9 +57,9 @@ Call this base class constructor from your subclass constructor.
       [broccoli-plugin](https://github.com/broccolijs/broccoli-plugin#new-plugininputnodes-options);
       see there.
 
-    * `filterFromCache.include` (default: `[]`): An array of regular expressions that files and directories in an input node must pass (match at least one pattern) in order to be included in the cache hash for rebuilds. In other words, a whitelist of patterns that identify which files and/or directories can trigger a rebuild.
+    * `cacheInclude` (default: `[]`): An array of regular expressions that files and directories in an input node must pass (match at least one pattern) in order to be included in the cache hash for rebuilds. In other words, a whitelist of patterns that identify which files and/or directories can trigger a rebuild.
 
-    * `filterFromCache.exclude` (default: `[]`): An array of regular expressions that files and directories in an input node cannot pass in order to be included in the cache hash for rebuilds. In other words, a blacklist of patterns that identify which files and/or directories will never trigger a rebuild.
+    * `cacheExclude` (default: `[]`): An array of regular expressions that files and directories in an input node cannot pass in order to be included in the cache hash for rebuilds. In other words, a blacklist of patterns that identify which files and/or directories will never trigger a rebuild.
 
         *Note, in the case when a file or directory matches both an include and exlude pattern, the exclude pattern wins*
 
