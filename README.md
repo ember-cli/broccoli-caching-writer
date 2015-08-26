@@ -68,6 +68,8 @@ var CachingWriter = require('broccoli-caching-writer');
 
 module.exports = CachingWriter.extend({
   init: function(inputTrees, options) {
+    this._super(inputTrees);
+
     /* do additional setup here */
   },
 
