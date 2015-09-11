@@ -131,6 +131,19 @@ describe('broccoli-caching-writer', function() {
         .then(function() { fs.writeFileSync(dummyJSChangedFile, 'bergh'); })
         .then(expectRebuild);
     });
+
+    it('when inputFiles is given, calls updateCache only when any of those files is changed', function() {
+      setupCachingWriter([sourcePath], {
+        inputFiles: ['core.js'] // existingJSFile
+      });
+
+      return expectRebuild()
+        .then(function() { fs.writeFileSync(dummyChangedFile, 'bergh'); })
+        .then(expectNoRebuild)
+        .then(function() { fs.writeFileSync(existingJSFile, '"YIPPIE"\n"KI-YAY!"\n'); })
+        .then(expectRebuild)
+        .finally(function() { fs.writeFileSync(existingJSFile, '"YIPPIE"\n'); });
+    });
   });
 
   describe('build', function() {
