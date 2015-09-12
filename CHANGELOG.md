@@ -1,3 +1,33 @@
+## master
+
+* Derive from broccoli-plugin base class, and expose same interface. In particular:
+
+    * `updateCache(srcDirs, destDir)` becomes `build()`
+    * We no longer derive from CoreObject
+    * We gain the `name`, `annotation`, and `persistentOutput` options
+    * `options` no longer auto-assigns to `this`; unknown options are ignored
+
+* `filterFromCache.include`/`filterFromCache.exclude` are now called
+  `cacheInclude`/`cacheExclude`; they must now be passed in through
+  `options`, and can no longer be set on the prototype/instance
+
+* Remove `enforceSingleInputTree` option; we now always expect an array
+
+## 1.0.0
+
+* Bump without changes
+
+## 0.6.2
+
+* Improve logging
+
+## 0.6.1
+
+* Ignore changes in directory size/mtime, so that excluded files can be added
+  or removed without causing invalidations
+
+## 0.6.0
+
 * Use new [`.rebuild` API](https://github.com/broccolijs/broccoli/blob/master/docs/new-rebuild-api.md)
 
 ## 0.5.5
@@ -71,7 +101,7 @@ var outputTree = compileCompass(inputTree, {
   (for those curious stay tuned on Windows support [here](https://github.com/broccolijs/node-symlink-or-copy/pull/1)).
 
 * Allow multiple input trees. If an array of trees is passed to the constructor, all trees will be read and their collective
-  output will be used to calculate the cache (any trees invalidating causes `updateCache` to be called). 
+  output will be used to calculate the cache (any trees invalidating causes `updateCache` to be called).
 
   The default now is to assume that an array of trees is allowed, if you want to opt-out of this behavior set `enforceSingleInputTree`
   to `true` on your classes prototype.

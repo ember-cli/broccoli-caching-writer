@@ -1,3 +1,5 @@
+'use strict';
+
 var fs = require('fs');
 var path = require('path');
 var RSVP = require('rsvp');
@@ -5,87 +7,78 @@ var rimraf = RSVP.denodeify(require('rimraf'));
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
 var assign = require('lodash-node/modern/object/assign');
-var CoreObject = require('core-object');
+var Plugin = require('broccoli-plugin');
 var debugGenerator = require('debug');
 var Key = require('./key');
-var readCompatAPI = require('broccoli-read-compat');
 var canUseInputFiles = require('./can-use-input-files');
 
-var CachingWriter = {};
+CachingWriter.prototype = Object.create(Plugin.prototype);
+CachingWriter.prototype.constructor = CachingWriter;
+function CachingWriter (inputNodes, options) {
+  options = options || {};
 
-CachingWriter.init = function(inputTrees, options) {
-  this._lastKeys = [];
+  Plugin.call(this, inputNodes, {
+    name: options.name,
+    annotation: options.annotation,
+    persistentOutput: true
+  });
+
+  this._cachingWriterPersistentOutput = !!options.persistentOutput;
+
+  this._lastKeys = null;
   this._shouldBeIgnoredCache = Object.create(null);
-  this.constructorDescription = this.description; // TODO: why do we smash this?
   this._resetStats();
 
-  if (options) {
-    for (var key in options) {
-      if (options.hasOwnProperty(key)) {
-        this[key] = options[key];
-      }
-    }
+  this._cacheInclude = options.cacheInclude || [];
+  this._cacheExclude = options.cacheExclude || [];
+  this._inputFiles = options.inputFiles || {};
+
+  if (!Array.isArray(this._cacheInclude)) {
+    throw new Error('Invalid cacheInclude option, it must be an array or undefined.');
   }
 
-  if (!inputTrees) {
-    throw new Error('no inputTree was provided');
+  if (!Array.isArray(this._cacheExclude)) {
+    throw new Error('Invalid cacheExclude option, it must be an array or undefined.');
   }
+}
 
-  if (Array.isArray(inputTrees)) {
-    if (this.enforceSingleInputTree) {
-      throw new Error('You passed an array of input trees, but only a single tree is allowed.');
-    }
-
-    this.inputTrees = inputTrees;
-  } else {
-    this.inputTrees = [inputTrees];
-  }
-
-  if (this.filterFromCache === undefined) {
-    this.filterFromCache = {};
-  }
-
-  if (this.filterFromCache.include === undefined) {
-    this.filterFromCache.include = [];
-  }
-
-  if (this.filterFromCache.exclude === undefined) {
-    this.filterFromCache.exclude = [];
-  }
-
-  if (!Array.isArray(this.filterFromCache.include)) {
-    throw new Error('Invalid filterFromCache.include option, it must be an array or undefined.');
-  }
-
-  if (!Array.isArray(this.filterFromCache.exclude)) {
-    throw new Error('Invalid filterFromCache.exclude option, it must be an array or undefined.');
-  }
+CachingWriter.prototype.debug = function() {
+  return this._debug || (this._debug = debugGenerator(
+    'broccoli-caching-writer:' +
+    this._name +
+    (this._annotation ? (' > [' + this._annotation + ']') : '')));
 };
 
-CachingWriter.enforceSingleInputTree = false;
-
-CachingWriter.debug = function() {
-  return this._debug || (this._debug = debugGenerator('broccoli-caching-writer:' + (this.constructorDescription || this.constructor.name) + ' > [' + this.description + ']'));
-};
-CachingWriter._resetStats = function() {
+CachingWriter.prototype._resetStats = function() {
   this._stats = {
     stats: 0,
     files: 0
   };
 };
-CachingWriter.rebuild = function () {
+
+CachingWriter.prototype.getCallbackObject = function() {
+  return { build: this._conditionalBuild.bind(this) };
+};
+
+CachingWriter.prototype._conditionalBuild = function () {
   var writer = this;
   var start = new Date();
 
   var invalidateCache = false;
-  var key, dir, updateCacheResult;
+  var key, dir;
   var lastKeys = [];
+
+  if (!writer._lastKeys) {
+    writer._lastKeys = [];
+    // Force initial build even if inputNodes is []
+    invalidateCache = true;
+  }
 
   for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
     dir = writer.inputPaths[i];
 
     key = writer.keyForTree(dir, undefined, dir);
-    lastKey = writer._lastKeys[i];
+    var lastKey = writer._lastKeys[i];
     lastKeys.push(key);
 
     if (!invalidateCache /* short circuit */ && !key.equal(lastKey)) {
@@ -94,41 +87,36 @@ CachingWriter.rebuild = function () {
   }
 
   this._stats.inputPaths = writer.inputPaths;
-  this._debug('rebuild %o in %dms', this._stats, new Date() - start);
+  this.debug()('rebuild %o in %dms', this._stats, new Date() - start);
   this._resetStats();
 
   if (invalidateCache) {
-    var updateCacheSrcArg = writer.enforceSingleInputTree ? writer.inputPaths[0] : writer.inputPaths;
-
     writer._lastKeys = lastKeys;
 
-    updateCacheResult = rimraf(writer.cachePath).then(function () {
-      fs.mkdirSync(writer.cachePath);
-      return writer.updateCache(updateCacheSrcArg, writer.cachePath);
+    var promise = RSVP.Promise.resolve();
+    if (!this._cachingWriterPersistentOutput) {
+      promise = promise.then(function() {
+        return rimraf(writer.outputPath);
+      }).then(function() {
+        fs.mkdirSync(writer.outputPath);
+      });
+    }
+    return promise.then(function() {
+      return writer.build();
     });
-
   }
-
-  return RSVP.Promise.resolve(updateCacheResult).then(function () {
-    fs.rmdirSync(writer.outputPath);
-    symlinkOrCopy.sync(writer.cachePath, writer.outputPath);
-  });
-};
-
-CachingWriter.updateCache = function (srcDir, destDir) {
-  throw new Error('You must implement updateCache.');
 };
 
 // Takes in a path and { include, exclude }. Tests the path using regular expressions and
 // returns true if the path does not match any exclude patterns AND matches atleast
 // one include pattern.
-CachingWriter.shouldBeIgnored = function (fullPath) {
+CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
   if (this._shouldBeIgnoredCache[fullPath] !== undefined) {
     return this._shouldBeIgnoredCache[fullPath];
   }
 
-  var excludePatterns = this.filterFromCache.exclude;
-  var includePatterns = this.filterFromCache.include;
+  var excludePatterns = this._cacheExclude;
+  var includePatterns = this._cacheInclude;
   var i = null;
 
   // Check exclude patterns
@@ -157,7 +145,7 @@ CachingWriter.shouldBeIgnored = function (fullPath) {
   return (this._shouldBeIgnoredCache[fullPath] = false);
 };
 
-CachingWriter.keyForTree = function (fullPath, initialRelativePath, dir) {
+CachingWriter.prototype.keyForTree = function (fullPath, initialRelativePath, dir) {
   var relativePath = initialRelativePath || '.';
   var stats;
   var statKeys;
@@ -187,8 +175,8 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath, dir) {
       console.warn(err.stack);
     }
 
-    if (canUseInputFiles(this.inputFiles)) {
-      children = this.inputFiles.map(function(file) {
+    if (canUseInputFiles(this._inputFiles)) {
+      children = this._inputFiles.map(function(file) {
         return this.keyForTree(
           path.join(dir, file),
           file,
@@ -220,26 +208,22 @@ CachingWriter.keyForTree = function (fullPath, initialRelativePath, dir) {
 };
 
 // Returns a list of matched files
-CachingWriter.listFiles = function() {
+CachingWriter.prototype.listFiles = function() {
   function listFiles(keys, files) {
     for (var i=0; i< keys.length; i++) {
-      var key = keys[i]
+      var key = keys[i];
       if (key.type === 'file') {
-        files.push(key.fullPath)
+        files.push(key.fullPath);
       } else {
         var children = key.children;
         if(children && children.length > 0) {
-          listFiles(children, files)
+          listFiles(children, files);
         }
       }
     }
-    return files
+    return files;
   }
-  return listFiles(this._lastKeys, [])
-}
+  return listFiles(this._lastKeys, []);
+};
 
-var CachingWriterClass = CoreObject.extend(CachingWriter);
-
-readCompatAPI.wrapFactory(CachingWriterClass);
-
-module.exports = CachingWriterClass;
+module.exports = CachingWriter;
