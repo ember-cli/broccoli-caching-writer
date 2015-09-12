@@ -86,7 +86,7 @@ CachingWriter.prototype._conditionalBuild = function () {
     var fullPath =  dir + '/' + relativePath;
     /*jshint validthis:true */
     this._stats.stats++;
-    return new Key('file', fullPath, relativePath, fs.statSync(fullPath), this.debug());
+    return new Key('file', fullPath, relativePath, fs.statSync(fullPath), undefined, this.debug());
   }
 
   for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
@@ -103,7 +103,7 @@ CachingWriter.prototype._conditionalBuild = function () {
     var files = inputFiles.filter(shouldNotBeIgnored, this).map(keyForFile, this);
     this._stats.files += files.length;
 
-    key = new Key('dir', dir, '/', fs.statSync(dir), files, this.debug());
+    key = new Key('directory', dir, '/', fs.statSync(dir), files, this.debug());
 
     var lastKey = writer._lastKeys[i];
     lastKeys.push(key);
