@@ -95,8 +95,10 @@ CachingWriter.prototype._conditionalBuild = function () {
     var inputFiles;
 
     if (canUseInputFiles(this._inputFiles)) {
+      this.debug()('using inputFiles directly');
       inputFiles = this._inputFiles;
     } else {
+      this.debug()('walking %o', this.inputFiles);
       inputFiles = walkSync(dir,  this.inputFiles);
     }
 
@@ -114,6 +116,7 @@ CachingWriter.prototype._conditionalBuild = function () {
   }
 
   this._stats.inputPaths = writer.inputPaths;
+  this.debug()('%o', this._stats);
   this.debug()('derive cacheKey in %dms', new Date() - start);
   this._resetStats();
 
