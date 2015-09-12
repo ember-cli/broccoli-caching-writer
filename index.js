@@ -11,6 +11,7 @@ var Plugin = require('broccoli-plugin');
 var debugGenerator = require('debug');
 var Key = require('./key');
 var canUseInputFiles = require('./can-use-input-files');
+var walkSync = require('walk-sync');
 
 CachingWriter.prototype = Object.create(Plugin.prototype);
 CachingWriter.prototype.constructor = CachingWriter;
@@ -57,7 +58,9 @@ CachingWriter.prototype._resetStats = function() {
 };
 
 CachingWriter.prototype.getCallbackObject = function() {
-  return { build: this._conditionalBuild.bind(this) };
+  return {
+    build: this._conditionalBuild.bind(this)
+  };
 };
 
 CachingWriter.prototype._conditionalBuild = function () {
@@ -74,10 +77,34 @@ CachingWriter.prototype._conditionalBuild = function () {
     invalidateCache = true;
   }
 
+  function shouldNotBeIgnored(relativePath) {
+    /*jshint validthis:true */
+    return !this.shouldBeIgnored(relativePath);
+  }
+
+  function keyForFile(relativePath) {
+    var fullPath =  dir + '/' + relativePath;
+    /*jshint validthis:true */
+    this._stats.stats++;
+    return new Key('file', fullPath, relativePath, fs.statSync(fullPath), this.debug());
+  }
+
   for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
     dir = writer.inputPaths[i];
 
-    key = writer.keyForTree(dir, undefined, dir);
+    var inputFiles;
+
+    if (canUseInputFiles(this._inputFiles)) {
+      inputFiles = this._inputFiles;
+    } else {
+      inputFiles = walkSync(dir,  this.inputFiles);
+    }
+
+    var files = inputFiles.filter(shouldNotBeIgnored, this).map(keyForFile, this);
+    this._stats.files += files.length;
+
+    key = new Key('dir', dir, '/', fs.statSync(dir), files, this.debug());
+
     var lastKey = writer._lastKeys[i];
     lastKeys.push(key);
 
@@ -143,87 +170,6 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
 
   // Otherwise, don't ignore this file
   return (this._shouldBeIgnoredCache[fullPath] = false);
-};
-
-CachingWriter.prototype.keyForTree = function (fullPath, initialRelativePath, dir) {
-  var relativePath = initialRelativePath || '.';
-  var stats;
-  var statKeys;
-  var type;
-
-  try {
-    this._stats.stats++;
-    stats = fs.statSync(fullPath);
-  } catch (err) {
-    console.warn('Warning: failed to stat ' + fullPath);
-    // fullPath has probably ceased to exist. Leave `stats` undefined and
-    // proceed hashing.
-  }
-
-  var children;
-
-  // has children;
-  if (stats && stats.isDirectory()) {
-    type = 'directory';
-
-    var files;
-
-    try {
-      files = fs.readdirSync(fullPath).sort();
-    } catch (err) {
-      console.warn('Warning: Failed to read directory ' + fullPath);
-      console.warn(err.stack);
-    }
-
-    if (canUseInputFiles(this._inputFiles)) {
-      children = this._inputFiles.map(function(file) {
-        return this.keyForTree(
-          path.join(dir, file),
-          file,
-          dir
-        );
-      }, this);
-      this._stats.files += children.length;
-      children = children.filter(Boolean);
-    } else if (files) {
-      this._stats.files += files.length;
-      children = files.map(function(file) {
-        return this.keyForTree(
-          path.join(fullPath, file),
-          path.join(relativePath, file),
-          dir
-        );
-      }, this).filter(Boolean);
-    }
-
-  } else if (stats && stats.isFile()) {
-    type = 'file';
-
-    if (this.shouldBeIgnored(fullPath)) {
-      return null;
-    }
-  }
-
-  return new Key(type, fullPath, relativePath, stats, children, this.debug());
-};
-
-// Returns a list of matched files
-CachingWriter.prototype.listFiles = function() {
-  function listFiles(keys, files) {
-    for (var i=0; i< keys.length; i++) {
-      var key = keys[i];
-      if (key.type === 'file') {
-        files.push(key.fullPath);
-      } else {
-        var children = key.children;
-        if(children && children.length > 0) {
-          listFiles(children, files);
-        }
-      }
-    }
-    return files;
-  }
-  return listFiles(this._lastKeys, []);
 };
 
 module.exports = CachingWriter;
