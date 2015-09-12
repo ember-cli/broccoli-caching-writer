@@ -43,12 +43,14 @@ function CachingWriter (inputNodes, options) {
   }
 }
 
-CachingWriter.prototype.debug = function() {
-  return this._debug || (this._debug = debugGenerator(
-    'broccoli-caching-writer:' +
-    this._name +
-    (this._annotation ? (' > [' + this._annotation + ']') : '')));
-};
+Object.defineProperty(CachingWriter.prototype, 'debug', {
+  get: function() {
+    return this._debug || (this._debug = debugGenerator(
+      'broccoli-caching-writer:' +
+        this._name +
+        (this._annotation ? (' > [' + this._annotation + ']') : '')));
+  }
+});
 
 CachingWriter.prototype._resetStats = function() {
   this._stats = {
@@ -86,7 +88,7 @@ CachingWriter.prototype._conditionalBuild = function () {
     var fullPath =  dir + '/' + relativePath;
     /*jshint validthis:true */
     this._stats.stats++;
-    return new Key('file', fullPath, relativePath, fs.statSync(fullPath), undefined, this.debug());
+    return new Key('file', fullPath, relativePath, fs.statSync(fullPath), undefined, this.debug);
   }
 
   for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
@@ -95,17 +97,17 @@ CachingWriter.prototype._conditionalBuild = function () {
     var inputFiles;
 
     if (canUseInputFiles(this._inputFiles)) {
-      this.debug()('using inputFiles directly');
+      this.debug('using inputFiles directly');
       inputFiles = this._inputFiles;
     } else {
-      this.debug()('walking %o', this.inputFiles);
+      this.debug('walking %o', this.inputFiles);
       inputFiles = walkSync(dir,  this.inputFiles);
     }
 
     var files = inputFiles.filter(shouldNotBeIgnored, this).map(keyForFile, this);
     this._stats.files += files.length;
 
-    key = new Key('directory', dir, '/', fs.statSync(dir), files, this.debug());
+    key = new Key('directory', dir, '/', fs.statSync(dir), files, this.debug);
 
     var lastKey = writer._lastKeys[i];
     lastKeys.push(key);
@@ -116,8 +118,8 @@ CachingWriter.prototype._conditionalBuild = function () {
   }
 
   this._stats.inputPaths = writer.inputPaths;
-  this.debug()('%o', this._stats);
-  this.debug()('derive cacheKey in %dms', new Date() - start);
+  this.debug('%o', this._stats);
+  this.debug('derive cacheKey in %dms', new Date() - start);
   this._resetStats();
 
   if (invalidateCache) {
@@ -132,14 +134,14 @@ CachingWriter.prototype._conditionalBuild = function () {
         fs.mkdirSync(writer.outputPath);
       }).finally(function() {
 
-        this.debug()('purge output in %dms', new Date() - start);
+        this.debug('purge output in %dms', new Date() - start);
         start = new Date();
       }.bind(this));
     }
     return promise.then(function() {
       return writer.build();
     }).finally( function() {
-      this.debug()('rebuilding cache in %dms', new Date() - start);
+      this.debug('rebuilding cache in %dms', new Date() - start);
     }.bind(this));
   }
 };
