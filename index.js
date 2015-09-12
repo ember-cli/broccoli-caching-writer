@@ -114,10 +114,11 @@ CachingWriter.prototype._conditionalBuild = function () {
   }
 
   this._stats.inputPaths = writer.inputPaths;
-  this.debug()('rebuild %o in %dms', this._stats, new Date() - start);
+  this.debug()('derive cacheKey in %dms', new Date() - start);
   this._resetStats();
 
   if (invalidateCache) {
+    start = new Date();
     writer._lastKeys = lastKeys;
 
     var promise = RSVP.Promise.resolve();
@@ -126,11 +127,17 @@ CachingWriter.prototype._conditionalBuild = function () {
         return rimraf(writer.outputPath);
       }).then(function() {
         fs.mkdirSync(writer.outputPath);
-      });
+      }).finally(function() {
+
+        this.debug()('purge output in %dms', new Date() - start);
+        start = new Date();
+      }.bind(this));
     }
     return promise.then(function() {
       return writer.build();
-    });
+    }).finally( function() {
+      this.debug()('rebuilding cache in %dms', new Date() - start);
+    }.bind(this));
   }
 };
 
