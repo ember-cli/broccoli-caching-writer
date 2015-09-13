@@ -132,7 +132,7 @@ describe('broccoli-caching-writer', function() {
         .then(expectRebuild);
     });
 
-    it('when inputFiles is given, calls updateCache only when any of those files is changed', function() {
+    it('when inputFiles is given, calls updateCache only when any of those files are changed', function() {
       setupCachingWriter([sourcePath], {
         inputFiles: ['core.js'] // existingJSFile
       });
