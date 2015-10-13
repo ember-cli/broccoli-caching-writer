@@ -70,7 +70,7 @@ CachingWriter.prototype._conditionalBuild = function () {
   var start = new Date();
 
   var invalidateCache = false;
-  var dir;
+  var key, dir;
   var lastKeys = [];
 
   if (!writer._lastKeys) {
@@ -86,42 +86,33 @@ CachingWriter.prototype._conditionalBuild = function () {
 
   function keyForFile(relativePath) {
     var fullPath =  dir + '/' + relativePath;
-
-    var stats = fs.statSync(fullPath);
-
     /*jshint validthis:true */
-    return new Key({
-      relativePath: relativePath,
-      basePath: dir,
-      mode: stats.mode,
-      size: stats.size,
-      mtime: stats.mtime.getTime(),
-      isDirectory: function() {
-        return false;
-      }
-    }, undefined, this.debug);
+    this._stats.stats++;
+    return new Key('file', fullPath, relativePath, fs.statSync(fullPath), undefined, this.debug);
   }
+
   for (var i = 0, l = writer.inputPaths.length; i < l; i++) {
     dir = writer.inputPaths[i];
 
-    var files;
+    var inputFiles;
 
     if (canUseInputFiles(this._inputFiles)) {
       this.debug('using inputFiles directly');
-      files = this._inputFiles.filter(shouldNotBeIgnored, this).map(keyForFile, this);
+      inputFiles = this._inputFiles;
     } else {
       this.debug('walking %o', this.inputFiles);
-      files = walkSync.entries(dir,  this.inputFiles).filter(entriesShouldNotBeIgnored, this).map(keyForEntry, this);
+      inputFiles = walkSync(dir,  this.inputFiles);
     }
 
+    var files = inputFiles.filter(shouldNotBeIgnored, this).map(keyForFile, this);
     this._stats.files += files.length;
 
-    var lastKey = writer._lastKeys[i];
-    var key = keyForDir(dir, files, this.debug);
+    key = new Key('directory', dir, '/', fs.statSync(dir), files, this.debug);
 
+    var lastKey = writer._lastKeys[i];
     lastKeys.push(key);
 
-    if (!invalidateCache /* short circuit */ && !key.isEqual(lastKey)) {
+    if (!invalidateCache /* short circuit */ && !key.equal(lastKey)) {
       invalidateCache = true;
     }
   }
@@ -198,13 +189,13 @@ CachingWriter.prototype.listFiles = function() {
   function listFiles(keys, files) {
     for (var i=0; i< keys.length; i++) {
       var key = keys[i];
-      if (key.isDirectory()) {
+      if (key.type === 'file') {
+        files.push(key.fullPath);
+      } else {
         var children = key.children;
         if(children && children.length > 0) {
           listFiles(children, files);
         }
-      } else {
-        files.push(key.fullPath);
       }
     }
     return files;
@@ -213,27 +204,3 @@ CachingWriter.prototype.listFiles = function() {
 };
 
 module.exports = CachingWriter;
-
-function keyForDir(dir, children, debug) {
-  var stat = fs.statSync(dir);
-
-  return new Key({
-    relativePath: '/',
-    basePath: dir,
-    mode: stat.mode,
-    size: stat.size,
-    mtime: stat.mtime.getTime(),
-    isDirectory: function() { return  true; }
-  }, children, debug);
-}
-
-function entriesShouldNotBeIgnored(entry) {
-  /*jshint validthis:true */
-  return !this.shouldBeIgnored(entry.relativePath);
-}
-
-function keyForEntry(entry) {
-  /*jshint validthis:true */
-  return new Key(entry, undefined, this.debug);
-}
-

@@ -1,18 +1,21 @@
 var EMPTY_ARRAY = [];
 
-function Key(entry, children, debug) {
-  this.entry = entry;
+function Key(type, fullPath, path, stat, children, debug) {
+  this.type = type;
+  this.fullPath = fullPath;
+  this.path = path;
+  this.stat = stat;
   this.children = children || EMPTY_ARRAY;
   this.debug = debug;
 }
 
 Key.prototype.toString = function() {
-  return ' type: '     + (this.isDirectory() ? 'directory' : 'file') +
-         ' fullPath: ' + this.entry.fullPath +
-         ' path: '     + this.entry.relativePath+
-         ' mode: '     + this.netry.mode +
-         ' size: '     + this.netry.size +
-         ' mtime: '    + this.netry.mtime;
+  return ' type: '       + this.type +
+         ' fullPath: '   + this.fullPath +
+         ' path: '       + this.path +
+         ' stat.mode: '  + this.stat.mode +
+         ' stat.size: '  + this.stat.size +
+         ' stat.mtime: ' + this.stat.mtime.getTime();
 };
 
 function logNotEqual(current, next) {
@@ -23,51 +26,31 @@ function logNotEqual(current, next) {
   }
 }
 
-Object.defineProperty(Key.prototype, 'fullPath', {
-  get: function() {
-    return this.entry.fullPath;
-  }
-});
-
 Key.prototype.inspect = function() {
   return [
-    this.entry.isDirectory() ? 'directory' : 'file',
-    this.entry.fullPath,
-    this.entry.relativePath,
-    this.entry.mode,
-    this.entry.size,
-    this.entry.mtime
+    this.type,
+    this.fullPath,
+    this.path,
+    this.stat.mode,
+    this.stat.size,
+    this.stat.size,
+    this.stat.mtime.getTime()
   ].join(', ');
 };
 
-Key.prototype.isDirectory = function() {
-  return this.entry.isDirectory();
-};
-
-function isEntryEqual(a, b) {
-  if (a.isDirectory() && b.isDirectory()) {
-    return a.fullPath === b.fullPath;
-  } else {
-    return a.fullPath === b.fullPath &&
-           a.mode     === b.mode &&
-           a.size     === b.size &&
-           a.mtime    === b.mtime;
-  }
-}
-
-Key.prototype.isEqual = function(otherKey) {
+Key.prototype.equal = function(otherKey) {
   if (otherKey === undefined) {
     logNotEqual(this, otherKey);
     return false;
   }
 
-  if (this.entry.isDirectory() && otherKey.entry.isDirectory()) {
+  if (this.type === otherKey.type && this.type === 'directory') {
     var children = this.children;
     var otherChildren = otherKey.children;
 
     if (children.length === otherChildren.length) {
       for (var i = 0; i < children.length; i++) {
-        if (children[i].isEqual(otherChildren[i])) {
+        if (children[i].equal(otherChildren[i])) {
           // they are the same
         } else {
           return false;
@@ -79,7 +62,12 @@ Key.prototype.isEqual = function(otherKey) {
   }
 
   // key represents a file, diff the file
-  if (isEntryEqual(this.entry, otherKey.entry)) {
+  if (this.type       === otherKey.type &&
+      this.path       === otherKey.path &&
+      this.stat.mode  === otherKey.stat.mode &&
+      (this.type === 'directory' ? true : (this.stat.size === otherKey.stat.size &&
+                                           this.stat.mtime.getTime() === otherKey.stat.mtime.getTime()))) {
+
     return true;
   } else {
     logNotEqual(this, otherKey);
