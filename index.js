@@ -92,6 +92,7 @@ CachingWriter.prototype._conditionalBuild = function () {
     /*jshint validthis:true */
     return new Key({
       relativePath: relativePath,
+      fullPath: dir + '/' + relativePath,
       basePath: dir,
       mode: stats.mode,
       size: stats.size,
@@ -220,6 +221,7 @@ function keyForDir(dir, children, debug) {
   return new Key({
     relativePath: '/',
     basePath: dir,
+    fullPath: dir,
     mode: 16877,
     size: 0,
     mtime: 0,

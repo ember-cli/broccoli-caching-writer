@@ -1,9 +1,16 @@
 var EMPTY_ARRAY = [];
+var assert = require('assert');
 
 function Key(entry, children, debug) {
   this.entry = entry;
+  validateEntry(entry);
   this.children = children || EMPTY_ARRAY;
   this.debug = debug;
+}
+
+function validateEntry(entry) {
+  assert(entry.fullPath, 'entry requires fullPath');
+  assert(typeof entry.isDirectory === 'function', 'entry requires isDirectory function');
 }
 
 Key.prototype.toString = function() {
