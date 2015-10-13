@@ -215,14 +215,14 @@ CachingWriter.prototype.listFiles = function() {
 module.exports = CachingWriter;
 
 function keyForDir(dir, children, debug) {
-  var stat = fs.statSync(dir);
-
+  // no need to stat dir, we don't care about anything other then that they are
+  // a dir
   return new Key({
     relativePath: '/',
     basePath: dir,
-    mode: stat.mode,
-    size: stat.size,
-    mtime: stat.mtime.getTime(),
+    mode: 16877,
+    size: 0,
+    mtime: 0,
     isDirectory: function() { return  true; }
   }, children, debug);
 }
