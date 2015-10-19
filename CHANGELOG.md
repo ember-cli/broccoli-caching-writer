@@ -1,5 +1,21 @@
 ## master
 
+* Performance improvements
+
+## 2.0.3
+
+* Fix bug
+
+## 2.0.2
+
+* Performance improvements
+
+## 2.0.1
+
+* Performance improvements
+
+## 2.0.0
+
 * Derive from broccoli-plugin base class, and expose same interface. In particular:
 
     * `updateCache(srcDirs, destDir)` becomes `build()`
