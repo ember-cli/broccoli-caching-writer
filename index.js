@@ -196,22 +196,31 @@ CachingWriter.prototype.shouldBeIgnored = function (fullPath) {
 
 // Returns a list of matched files
 CachingWriter.prototype.listFiles = function() {
-  function listFiles(keys, files) {
+  return this.listEntries().map(function(entry) {
+    return entry.fullPath;
+  });
+};
+
+
+// Returns a list of matched files
+CachingWriter.prototype.listEntries = function() {
+  function listEntries(keys, files) {
     for (var i=0; i< keys.length; i++) {
       var key = keys[i];
       if (key.isDirectory()) {
         var children = key.children;
         if(children && children.length > 0) {
-          listFiles(children, files);
+          listEntries(children, files);
         }
       } else {
-        files.push(key.fullPath);
+        files.push(key.entry);
       }
     }
     return files;
   }
-  return listFiles(this._lastKeys, []);
+  return listEntries(this._lastKeys, []);
 };
+
 
 module.exports = CachingWriter;
 
