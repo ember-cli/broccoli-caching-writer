@@ -285,7 +285,7 @@ describe('broccoli-caching-writer', function() {
     });
   });
 
-  describe('listFiles', function() {
+  describe('listEntries', function() {
     var listFiles;
 
     function getListFilesFor(options) {
@@ -297,6 +297,46 @@ describe('broccoli-caching-writer', function() {
       });
       return expectRebuild().then(function() {
         return listFiles;
+      });
+    }
+
+    it('returns an array of files keyed', function() {
+      return expect(getListFilesFor({})).to.eventually.deep.equal(['core.js', 'main.js']);
+    });
+
+    it('returns an array of files keyed including only those in the include filter', function() {
+      return expect(getListFilesFor({
+        cacheInclude: [ /core\.js$/ ]
+      })).to.eventually.deep.equal(['core.js']);
+    });
+
+    it('returns an array of files keyed ignoring those in the exclude filter', function() {
+      return expect(getListFilesFor({
+        cacheExclude: [ /main\.js$/ ]
+      })).to.eventually.deep.equal(['core.js']);
+    });
+
+    it('returns an array of files keyed both include & exclude filters', function() {
+      return expect(getListFilesFor({
+        cacheInclude: [ /\.js$/ ],
+        cacheExclude: [ /core\.js$/ ]
+      })).to.eventually.deep.equal(['main.js']);
+    });
+  });
+
+  describe('listEntries', function() {
+    var listEntries;
+
+    function getListFilesFor(options) {
+      setupCachingWriter([sourcePath], options, function() {
+        var writer = this;
+        listEntries = this.listEntries().map(function(p) {
+          return path.relative(writer.inputPaths[0], p.fullPath);
+        });
+      });
+
+      return expectRebuild().then(function() {
+        return listEntries;
       });
     }
 

@@ -1,5 +1,12 @@
 ## master
 
+## 2.2.0
+
+* add plugin.listEntries() – this returns a stat entry result, allowing
+  subclasses access to the underyling stat information
+
+## 2.1.0
+
 * Performance improvements
 
 ## 2.0.3
