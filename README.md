@@ -25,23 +25,15 @@ function MyPlugin(inputNodes, options) {
     annotation: options.annotation
   });
 }
+
+MyPlugin.prototype.build = function() {
+  // cache has been busted
+  // do anything, for example:
+  //   1. read from this.inputPaths
+  //   2. do something based on the result
+  //   3. and then, write to this.outputPath
+};
 ```
-
-To add caching, simply replace `Plugin` with `CachingWriter`, like so:
-
-```js
-var CachingWriter = require('broccoli-caching-writer');
-
-MyPlugin.prototype = Object.create(CachingWriter.prototype);
-MyPlugin.prototype.constructor = MyPlugin;
-function MyPlugin(inputNodes, options) {
-  options = options || {};
-  CachingWriter.call(this, inputNodes, {
-    annotation: options.annotation
-  });
-}
-```
-
 
 ## Documentation
 
