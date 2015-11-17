@@ -12,15 +12,15 @@ used instead.
 
 ## Example
 
-Say your plugin derives from `Plugin` like so:
 
 ```js
-var Plugin = require('broccoli-plugin');
+var Plugin = require('broccoli-caching-writer');
 
 MyPlugin.prototype = Object.create(Plugin.prototype);
 MyPlugin.prototype.constructor = MyPlugin;
 function MyPlugin(inputNodes, options) {
   options = options || {};
+  // options.inputFiles === array of globs, to consider for the cache key
   Plugin.call(this, inputNodes, {
     annotation: options.annotation
   });
@@ -55,6 +55,11 @@ Call this base class constructor from your subclass constructor.
 
         *Note, in the case when a file or directory matches both an include and exlude pattern, the exclude pattern wins*
 
+## `plugin.listFiles`
+list files matched, helpful as it allows us avoid a second glob
+
+## `plugin.listEntries`
+list entries (stat objects) of files matched, helpful when further FS information is required on rebuild.
 
 ## ZOMG!!! TESTS?!?!!?
 
