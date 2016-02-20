@@ -6,7 +6,6 @@ var RSVP = require('rsvp');
 var rimraf = RSVP.denodeify(require('rimraf'));
 var helpers = require('broccoli-kitchen-sink-helpers');
 var symlinkOrCopy = require('symlink-or-copy');
-var assign = require('lodash.assign');
 var Plugin = require('broccoli-plugin');
 var debugGenerator = require('debug');
 var Key = require('./key');
