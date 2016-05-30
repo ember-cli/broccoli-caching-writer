@@ -30,6 +30,7 @@
     "broccoli": "^0.16.9",
     "chai": "^3.2.0",
     "chai-as-promised": "^5.1.0",
+    "chai-files": "^1.2.0",
     "mocha": "^2.2.5",
     "mocha-jshint": "~2.2.3"
   }

@@ -4,7 +4,9 @@ var fs = require('fs');
 var path = require('path');
 var chai = require('chai'), expect = chai.expect;
 var chaiAsPromised = require('chai-as-promised');
+var chaiFiles = require('chai-files'), file = chaiFiles.file;
 chai.use(chaiAsPromised);
+chai.use(chaiFiles);
 var broccoli = require('broccoli');
 var CachingWriter = require('..');
 
@@ -149,12 +151,8 @@ describe('broccoli-caching-writer', function() {
   describe('build', function() {
     it('can read from inputPaths', function() {
       setupCachingWriter([sourcePath, secondaryPath], {}, function() {
-        expect(fs.readFileSync(this.inputPaths[0] + '/core.js', {
-          encoding: 'utf8'
-        })).to.contain('"YIPPIE"');
-        expect(fs.readFileSync(this.inputPaths[1] + '/bar.js', {
-          encoding: 'utf8'
-        })).to.contain('"BLAMMO!"');
+        expect(file(this.inputPaths[0] + '/core.js')).to.contain('"YIPPIE"');
+        expect(file(this.inputPaths[1] + '/bar.js')).to.contain('"BLAMMO!"');
       });
 
       return expectRebuild();
@@ -167,9 +165,7 @@ describe('broccoli-caching-writer', function() {
 
       return expectRebuild()
         .then(function(outputPath) {
-          expect(fs.readFileSync(outputPath + '/something-cool.js', {
-            encoding: 'utf8'
-          })).to.equal('zomg blammo');
+          expect(file(outputPath + '/something-cool.js')).to.equal('zomg blammo');
         });
     });
 
