@@ -365,34 +365,34 @@ var canUseInputFiles = require('../can-use-input-files');
 
 describe('can-use-input-files', function(){
   it('is false for no input', function() {
-    expect(canUseInputFiles()).to.eql(false);
+    expect(canUseInputFiles()).to.be.false;
   });
 
   it('is false for non array input', function() {
-    expect(canUseInputFiles({})).to.eql(false);
-    expect(canUseInputFiles({length: 1})).to.eql(false);
-    expect(canUseInputFiles(true)).to.eql(false);
-    expect(canUseInputFiles(false)).to.eql(false);
-    expect(canUseInputFiles('')).to.eql(false);
-    expect(canUseInputFiles('asdf')).to.eql(false);
+    expect(canUseInputFiles({})).to.be.false;
+    expect(canUseInputFiles({length: 1})).to.be.false;
+    expect(canUseInputFiles(true)).to.be.false;
+    expect(canUseInputFiles(false)).to.be.false;
+    expect(canUseInputFiles('')).to.be.false;
+    expect(canUseInputFiles('asdf')).to.be.false;
   });
 
   it('is true for array input', function() {
-    expect(canUseInputFiles([])).to.eql(true);
-    expect(canUseInputFiles([1])).to.eql(true);
+    expect(canUseInputFiles([])).to.be.true;
+    expect(canUseInputFiles([1])).to.be.true;
   });
 
   it('true for non glob entries', function() {
-    expect(canUseInputFiles(['foo'])).to.eql(true);
-    expect(canUseInputFiles(['foo', 'bar'])).to.eql(true);
-    expect(canUseInputFiles(['foo/bar', 'bar/baz'])).to.eql(true);
-    expect(canUseInputFiles(['foo/bar.js', 'bar/baz-apple'])).to.eql(true);
+    expect(canUseInputFiles(['foo'])).to.be.true;
+    expect(canUseInputFiles(['foo', 'bar'])).to.be.true;
+    expect(canUseInputFiles(['foo/bar', 'bar/baz'])).to.be.true;
+    expect(canUseInputFiles(['foo/bar.js', 'bar/baz-apple'])).to.be.true;
   });
 
   it('false for glob entries', function() {
-    expect(canUseInputFiles(['f*oo'])).to.eql(false);
-    expect(canUseInputFiles(['foo', 'bar*'])).to.eql(false);
-    expect(canUseInputFiles(['foo/bar}', 'bar{baz'])).to.eql(false);
-    expect(canUseInputFiles(['foo{bar.js', 'bar}baz{apple'])).to.eql(false);
+    expect(canUseInputFiles(['f*oo'])).to.be.false;
+    expect(canUseInputFiles(['foo', 'bar*'])).to.be.false;
+    expect(canUseInputFiles(['foo/bar}', 'bar{baz'])).to.be.false;
+    expect(canUseInputFiles(['foo{bar.js', 'bar}baz{apple'])).to.be.false;
   });
 });
