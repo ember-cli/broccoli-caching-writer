@@ -281,7 +281,7 @@ describe('broccoli-caching-writer', function() {
     });
   });
 
-  describe('listEntries', function() {
+  describe('listFiles', function() {
     var listFiles;
 
     function getListFilesFor(options) {
@@ -323,7 +323,7 @@ describe('broccoli-caching-writer', function() {
   describe('listEntries', function() {
     var listEntries;
 
-    function getListFilesFor(options) {
+    function getListEntriesFor(options) {
       setupCachingWriter([sourcePath], options, function() {
         var writer = this;
         listEntries = this.listEntries().map(function(p) {
@@ -337,23 +337,23 @@ describe('broccoli-caching-writer', function() {
     }
 
     it('returns an array of files keyed', function() {
-      return expect(getListFilesFor({})).to.eventually.deep.equal(['core.js', 'main.js']);
+      return expect(getListEntriesFor({})).to.eventually.deep.equal(['core.js', 'main.js']);
     });
 
     it('returns an array of files keyed including only those in the include filter', function() {
-      return expect(getListFilesFor({
+      return expect(getListEntriesFor({
         cacheInclude: [ /core\.js$/ ]
       })).to.eventually.deep.equal(['core.js']);
     });
 
     it('returns an array of files keyed ignoring those in the exclude filter', function() {
-      return expect(getListFilesFor({
+      return expect(getListEntriesFor({
         cacheExclude: [ /main\.js$/ ]
       })).to.eventually.deep.equal(['core.js']);
     });
 
     it('returns an array of files keyed both include & exclude filters', function() {
-      return expect(getListFilesFor({
+      return expect(getListEntriesFor({
         cacheInclude: [ /\.js$/ ],
         cacheExclude: [ /core\.js$/ ]
       })).to.eventually.deep.equal(['main.js']);
