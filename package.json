@@ -23,7 +23,6 @@
     "debug": "^2.1.1",
     "rimraf": "^2.2.8",
     "rsvp": "^3.0.17",
-    "symlink-or-copy": "^1.0.0",
     "walk-sync": "^0.2.5"
   },
   "devDependencies": {
