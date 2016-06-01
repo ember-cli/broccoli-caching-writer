@@ -4,7 +4,9 @@ var fs = require('fs');
 var path = require('path');
 var chai = require('chai'), expect = chai.expect;
 var chaiAsPromised = require('chai-as-promised');
+var chaiFiles = require('chai-files'), file = chaiFiles.file;
 chai.use(chaiAsPromised);
+chai.use(chaiFiles);
 var broccoli = require('broccoli');
 var CachingWriter = require('..');
 
@@ -149,12 +151,8 @@ describe('broccoli-caching-writer', function() {
   describe('build', function() {
     it('can read from inputPaths', function() {
       setupCachingWriter([sourcePath, secondaryPath], {}, function() {
-        expect(fs.readFileSync(this.inputPaths[0] + '/core.js', {
-          encoding: 'utf8'
-        })).to.contain('"YIPPIE"');
-        expect(fs.readFileSync(this.inputPaths[1] + '/bar.js', {
-          encoding: 'utf8'
-        })).to.contain('"BLAMMO!"');
+        expect(file(this.inputPaths[0] + '/core.js')).to.contain('"YIPPIE"');
+        expect(file(this.inputPaths[1] + '/bar.js')).to.contain('"BLAMMO!"');
       });
 
       return expectRebuild();
@@ -167,9 +165,7 @@ describe('broccoli-caching-writer', function() {
 
       return expectRebuild()
         .then(function(outputPath) {
-          expect(fs.readFileSync(outputPath + '/something-cool.js', {
-            encoding: 'utf8'
-          })).to.equal('zomg blammo');
+          expect(file(outputPath + '/something-cool.js')).to.equal('zomg blammo');
         });
     });
 
@@ -285,7 +281,7 @@ describe('broccoli-caching-writer', function() {
     });
   });
 
-  describe('listEntries', function() {
+  describe('listFiles', function() {
     var listFiles;
 
     function getListFilesFor(options) {
@@ -327,7 +323,7 @@ describe('broccoli-caching-writer', function() {
   describe('listEntries', function() {
     var listEntries;
 
-    function getListFilesFor(options) {
+    function getListEntriesFor(options) {
       setupCachingWriter([sourcePath], options, function() {
         var writer = this;
         listEntries = this.listEntries().map(function(p) {
@@ -341,23 +337,23 @@ describe('broccoli-caching-writer', function() {
     }
 
     it('returns an array of files keyed', function() {
-      return expect(getListFilesFor({})).to.eventually.deep.equal(['core.js', 'main.js']);
+      return expect(getListEntriesFor({})).to.eventually.deep.equal(['core.js', 'main.js']);
     });
 
     it('returns an array of files keyed including only those in the include filter', function() {
-      return expect(getListFilesFor({
+      return expect(getListEntriesFor({
         cacheInclude: [ /core\.js$/ ]
       })).to.eventually.deep.equal(['core.js']);
     });
 
     it('returns an array of files keyed ignoring those in the exclude filter', function() {
-      return expect(getListFilesFor({
+      return expect(getListEntriesFor({
         cacheExclude: [ /main\.js$/ ]
       })).to.eventually.deep.equal(['core.js']);
     });
 
     it('returns an array of files keyed both include & exclude filters', function() {
-      return expect(getListFilesFor({
+      return expect(getListEntriesFor({
         cacheInclude: [ /\.js$/ ],
         cacheExclude: [ /core\.js$/ ]
       })).to.eventually.deep.equal(['main.js']);
@@ -369,34 +365,34 @@ var canUseInputFiles = require('../can-use-input-files');
 
 describe('can-use-input-files', function(){
   it('is false for no input', function() {
-    expect(canUseInputFiles()).to.eql(false);
+    expect(canUseInputFiles()).to.be.false;
   });
 
   it('is false for non array input', function() {
-    expect(canUseInputFiles({})).to.eql(false);
-    expect(canUseInputFiles({length: 1})).to.eql(false);
-    expect(canUseInputFiles(true)).to.eql(false);
-    expect(canUseInputFiles(false)).to.eql(false);
-    expect(canUseInputFiles('')).to.eql(false);
-    expect(canUseInputFiles('asdf')).to.eql(false);
+    expect(canUseInputFiles({})).to.be.false;
+    expect(canUseInputFiles({length: 1})).to.be.false;
+    expect(canUseInputFiles(true)).to.be.false;
+    expect(canUseInputFiles(false)).to.be.false;
+    expect(canUseInputFiles('')).to.be.false;
+    expect(canUseInputFiles('asdf')).to.be.false;
   });
 
   it('is true for array input', function() {
-    expect(canUseInputFiles([])).to.eql(true);
-    expect(canUseInputFiles([1])).to.eql(true);
+    expect(canUseInputFiles([])).to.be.true;
+    expect(canUseInputFiles([1])).to.be.true;
   });
 
   it('true for non glob entries', function() {
-    expect(canUseInputFiles(['foo'])).to.eql(true);
-    expect(canUseInputFiles(['foo', 'bar'])).to.eql(true);
-    expect(canUseInputFiles(['foo/bar', 'bar/baz'])).to.eql(true);
-    expect(canUseInputFiles(['foo/bar.js', 'bar/baz-apple'])).to.eql(true);
+    expect(canUseInputFiles(['foo'])).to.be.true;
+    expect(canUseInputFiles(['foo', 'bar'])).to.be.true;
+    expect(canUseInputFiles(['foo/bar', 'bar/baz'])).to.be.true;
+    expect(canUseInputFiles(['foo/bar.js', 'bar/baz-apple'])).to.be.true;
   });
 
   it('false for glob entries', function() {
-    expect(canUseInputFiles(['f*oo'])).to.eql(false);
-    expect(canUseInputFiles(['foo', 'bar*'])).to.eql(false);
-    expect(canUseInputFiles(['foo/bar}', 'bar{baz'])).to.eql(false);
-    expect(canUseInputFiles(['foo{bar.js', 'bar}baz{apple'])).to.eql(false);
+    expect(canUseInputFiles(['f*oo'])).to.be.false;
+    expect(canUseInputFiles(['foo', 'bar*'])).to.be.false;
+    expect(canUseInputFiles(['foo/bar}', 'bar{baz'])).to.be.false;
+    expect(canUseInputFiles(['foo{bar.js', 'bar}baz{apple'])).to.be.false;
   });
 });

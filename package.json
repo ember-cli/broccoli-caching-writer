@@ -23,13 +23,13 @@
     "debug": "^2.1.1",
     "rimraf": "^2.2.8",
     "rsvp": "^3.0.17",
-    "symlink-or-copy": "^1.0.0",
     "walk-sync": "^0.2.5"
   },
   "devDependencies": {
     "broccoli": "^0.16.9",
     "chai": "^3.2.0",
     "chai-as-promised": "^5.1.0",
+    "chai-files": "^1.2.0",
     "mocha": "^2.2.5",
     "mocha-jshint": "~2.2.3"
   }

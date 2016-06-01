@@ -3,7 +3,7 @@
 ## 2.2.0
 
 * add plugin.listEntries() – this returns a stat entry result, allowing
-  subclasses access to the underyling stat information
+  subclasses access to the underlying stat information
 
 ## 2.1.0
 
