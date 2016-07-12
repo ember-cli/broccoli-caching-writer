@@ -56,10 +56,10 @@ Call this base class constructor from your subclass constructor.
         *Note, in the case when a file or directory matches both an include and exlude pattern, the exclude pattern wins*
 
 ## `plugin.listFiles`
-list files matched, helpful as it allows us avoid a second glob
+list files matched, helpful as it allows us avoid a second glob, lexicographically sorted by relativePath.
 
 ## `plugin.listEntries`
-list entries (stat objects) of files matched, helpful when further FS information is required on rebuild.
+list entries (stat objects) of files matched, helpful when further FS information is required on rebuild, lexicographically sorted by relativePath.
 
 ## ZOMG!!! TESTS?!?!!?
 
