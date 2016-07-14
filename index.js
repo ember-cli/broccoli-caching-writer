@@ -215,20 +215,7 @@ CachingWriter.prototype.listEntries = function() {
     }
     return files;
   }
-
-  return listEntries(this._lastKeys, []).sort(function (a, b) {
-      var pathA = a.relativePath;
-      var pathB = b.relativePath;
-
-      if (pathA === pathB) {
-        return 0;
-      } else if (pathA < pathB) {
-        return -1;
-      } else {
-        return 1;
-      }
-    }
-  );
+  return listEntries(this._lastKeys, []);
 };
 
 
