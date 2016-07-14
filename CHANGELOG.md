@@ -1,5 +1,9 @@
 ## master
 
+## 3.0.0
+
+* listFiles and listEntries output is now lexicographically sorted (by related path)
+
 ## 2.3.1
 
 * [REVERT] listFiles and listEntries output is now lexicographically sorted (by related path)
