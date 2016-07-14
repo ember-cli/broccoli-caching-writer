@@ -282,15 +282,20 @@ describe('broccoli-caching-writer', function() {
   });
 
   describe('listFiles', function() {
-    var listFiles;
+    function getListFilesFor(options, sourcePaths) {
+      var listFiles;
 
-    function getListFilesFor(options) {
-      setupCachingWriter([sourcePath], options, function() {
+      if (arguments.length < 2) {
+        sourcePaths = [sourcePath];
+      }
+
+      setupCachingWriter(sourcePaths, options, function() {
         var writer = this;
-        listFiles = this.listFiles().map(function(p) {
-          return path.relative(writer.inputPaths[0], p);
+        listFiles = this.listFiles().map(function(fullPath) {
+          return path.basename(fullPath);
         });
       });
+
       return expectRebuild().then(function() {
         return listFiles;
       });
@@ -318,16 +323,32 @@ describe('broccoli-caching-writer', function() {
         cacheExclude: [ /core\.js$/ ]
       })).to.eventually.deep.equal(['main.js']);
     });
+
+    it('returns a sorted array', function() {
+      return expect(getListFilesFor(
+        {}, [sourcePath, secondaryPath]
+      )).to.eventually.deep.equal([
+        'bar.js',
+        'core.js',
+        'foo-baz.js',
+        'foo.js',
+        'main.js',
+      ]);
+    });
   });
 
   describe('listEntries', function() {
-    var listEntries;
+    function getListEntriesFor(options, sourcePaths) {
+      var listEntries;
 
-    function getListEntriesFor(options) {
-      setupCachingWriter([sourcePath], options, function() {
+      if (arguments.length < 2) {
+        sourcePaths = [sourcePath];
+      }
+
+      setupCachingWriter(sourcePaths, options, function() {
         var writer = this;
-        listEntries = this.listEntries().map(function(p) {
-          return path.relative(writer.inputPaths[0], p.fullPath);
+        listEntries = this.listEntries().map(function(entry) {
+          return path.basename(entry.fullPath);
         });
       });
 
@@ -357,6 +378,19 @@ describe('broccoli-caching-writer', function() {
         cacheInclude: [ /\.js$/ ],
         cacheExclude: [ /core\.js$/ ]
       })).to.eventually.deep.equal(['main.js']);
+    });
+
+
+    it('returns a sorted array', function() {
+      return expect(getListEntriesFor(
+        {}, [sourcePath, secondaryPath]
+      )).to.eventually.deep.equal([
+        'bar.js',
+        'core.js',
+        'foo-baz.js',
+        'foo.js',
+        'main.js',
+      ]);
     });
   });
 });
