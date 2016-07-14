@@ -1,5 +1,9 @@
 ## master
 
+## 2.3.0
+
+* listFiles and listEntries output is now lexicographically sorted (by related path)
+
 ## 2.2.0
 
 * add plugin.listEntries() – this returns a stat entry result, allowing
