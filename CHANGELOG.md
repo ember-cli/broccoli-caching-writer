@@ -1,5 +1,10 @@
 ## master
 
+## 2.3.1
+
+* [REVERT] listFiles and listEntries output is now lexicographically sorted (by related path)
+  ember-cli uses concat inputFiles instead of headerFiles for files which much be ordered
+
 ## 2.3.0
 
 * listFiles and listEntries output is now lexicographically sorted (by related path)
