@@ -9,6 +9,11 @@
     "type": "git",
     "url": "https://github.com/ember-cli/broccoli-caching-writer.git"
   },
+  "files": [
+    "can-use-input-files.js",
+    "index.js",
+    "key.js"
+  ],
   "scripts": {
     "test": "mocha tests/",
     "test:debug": "mocha --no-timeouts debug tests/"
