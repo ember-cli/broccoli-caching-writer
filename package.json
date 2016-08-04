@@ -24,7 +24,7 @@
   ],
   "dependencies": {
     "broccoli-kitchen-sink-helpers": "^0.2.5",
-    "broccoli-plugin": "1.1.0",
+    "broccoli-plugin": "^1.1.0",
     "debug": "^2.1.1",
     "rimraf": "^2.2.8",
     "rsvp": "^3.0.17",
