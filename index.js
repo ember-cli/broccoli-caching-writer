@@ -108,8 +108,8 @@ CachingWriter.prototype._conditionalBuild = function () {
       this.debug('using inputFiles directly');
       files = this._inputFiles.filter(shouldNotBeIgnored, this).map(keyForFile, this);
     } else {
-      this.debug('walking %o', this.inputFiles);
-      files = walkSync.entries(dir,  this.inputFiles).filter(entriesShouldNotBeIgnored, this).map(keyForEntry, this);
+      this.debug('walking %o', this._inputFiles);
+      files = walkSync.entries(dir,  this._inputFiles).filter(entriesShouldNotBeIgnored, this).map(keyForEntry, this);
     }
 
     this._stats.files += files.length;
