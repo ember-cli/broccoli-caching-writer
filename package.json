@@ -31,7 +31,7 @@
     "walk-sync": "^0.3.0"
   },
   "devDependencies": {
-    "broccoli": "^0.16.9",
+    "broccoli": "^1.0.0",
     "chai": "^3.2.0",
     "chai-as-promised": "^6.0.0",
     "chai-files": "^1.2.0",
