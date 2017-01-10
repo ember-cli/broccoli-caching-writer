@@ -4,7 +4,7 @@
 [![Build status][appveyor-badge]][appveyor-badge-url]
 
 Drop-in-replacement for
-[broccoli-writer](https://github.com/broccolijs/broccoli-writer) adding a thin
+[broccoli-plugin](https://github.com/broccolijs/broccoli-plugin) adding a thin
 caching layer based on the computed hash of the input directory trees. If any
 file in an input node has changed, the `build` method will be called,
 otherwise (if input is the same) the results of the last `build` call will be
