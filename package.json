@@ -27,7 +27,7 @@
     "broccoli-plugin": "^1.2.1",
     "debug": "^2.5.1",
     "rimraf": "^2.2.8",
-    "rsvp": "^3.0.17",
+    "rsvp": "^3.6.0",
     "walk-sync": "^0.3.0"
   },
   "devDependencies": {
