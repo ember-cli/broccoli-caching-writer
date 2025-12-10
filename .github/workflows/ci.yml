@@ -28,5 +28,20 @@ jobs:
       with:
         node-version: ${{ matrix.node_version }}
     - run: pnpm install
-    - run: npm install -g cross-env
     - run: pnpm test
+  
+  legacy-tests:
+    name: Legacy Tests
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      matrix:
+        node_version: ['0.12', '4', '6', '8', '10', '12', '14', '16', '18']
+
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-node@v6
+      with:
+        node-version: ${{ matrix.node_version }}
+    - run: npm install
+    - run: npm test
