@@ -24,7 +24,6 @@
   ],
   "packageManager": "pnpm@10.25.0",
   "dependencies": {
-    "broccoli-kitchen-sink-helpers": "^0.3.1",
     "broccoli-plugin": "^1.2.1",
     "debug": "^3.0.0",
     "rimraf": "^2.2.8",
