@@ -22,6 +22,7 @@
     "broccoli-plugin",
     "javascript"
   ],
+  "packageManager": "pnpm@10.25.0",
   "dependencies": {
     "broccoli-kitchen-sink-helpers": "^0.3.1",
     "broccoli-plugin": "^1.2.1",
