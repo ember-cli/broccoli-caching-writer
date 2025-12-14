@@ -1,3 +1,5 @@
+# Changelog
+
 ## master
 
 ## 3.0.0
