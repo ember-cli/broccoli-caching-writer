@@ -1,5 +1,33 @@
 # Changelog
 
+## Release (2025-12-14)
+
+* broccoli-caching-writer 3.1.0 (minor)
+
+#### :rocket: Enhancement
+* `broccoli-caching-writer`
+  * [#101](https://github.com/ember-cli/broccoli-caching-writer/pull/101) remove unused broccoli-kitchen-sink-helpers ([@mansona](https://github.com/mansona))
+
+#### :bug: Bug Fix
+* `broccoli-caching-writer`
+  * [#86](https://github.com/ember-cli/broccoli-caching-writer/pull/86) Shifts to using the appropriate this._inputFiles ([@acorncom](https://github.com/acorncom))
+  * [#84](https://github.com/ember-cli/broccoli-caching-writer/pull/84) chore(package): update debug to version 2.5.1 ([@rwjblue](https://github.com/rwjblue))
+
+#### :memo: Documentation
+* `broccoli-caching-writer`
+  * [#85](https://github.com/ember-cli/broccoli-caching-writer/pull/85) Refer to broccoli-plugin instead of broccoli-writer (deprecated) ([@joliss](https://github.com/joliss))
+
+#### :house: Internal
+* `broccoli-caching-writer`
+  * [#103](https://github.com/ember-cli/broccoli-caching-writer/pull/103) setup releasing with release-plan ([@mansona](https://github.com/mansona))
+  * [#100](https://github.com/ember-cli/broccoli-caching-writer/pull/100) swap to pnpm and turn on github actions ([@mansona](https://github.com/mansona))
+
+#### Committers: 4
+- Chris Manson ([@mansona](https://github.com/mansona))
+- David Baker ([@acorncom](https://github.com/acorncom))
+- Jo Liss ([@joliss](https://github.com/joliss))
+- Robert Jackson ([@rwjblue](https://github.com/rwjblue))
+
 ## master
 
 ## 3.0.0
